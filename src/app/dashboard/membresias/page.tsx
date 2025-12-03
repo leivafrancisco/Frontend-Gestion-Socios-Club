@@ -36,6 +36,15 @@ export default function MembresiasPage() {
     }
   };
 
+  // Función para formatear fecha en dd/mm/aaaa
+  const formatearFecha = (fechaString: string): string => {
+    const fecha = new Date(fechaString);
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+  };
+
   return (
     <div>
       {/* Page Header */}
@@ -161,8 +170,8 @@ export default function MembresiasPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="w-4 h-4" />
                         <div>
-                          <div>{new Date(membresia.fechaInicio).toLocaleDateString('es-AR')}</div>
-                          <div className="text-xs text-gray-500">a {new Date(membresia.fechaFin).toLocaleDateString('es-AR')}</div>
+                          <div>{formatearFecha(membresia.fechaInicio)}</div>
+                          <div className="text-xs text-gray-500">a {formatearFecha(membresia.fechaFin)}</div>
                         </div>
                       </div>
                     </td>

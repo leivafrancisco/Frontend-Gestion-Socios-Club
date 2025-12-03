@@ -127,6 +127,37 @@ export default function NuevaMembresiaPage() {
     setError(null);
   };
 
+  // Calcular precio por mes (suma de todas las actividades seleccionadas)
+  const precioPorMes = selectedActividades.reduce((total, actividadId) => {
+    const actividad = actividades.find(a => a.id === actividadId);
+    return total + (actividad?.precio || 0);
+  }, 0);
+
+  // Calcular diferencia de meses entre fechas
+  const calcularMesesDiferencia = (inicio: string, fin: string): number => {
+    if (!inicio || !fin) return 0;
+
+    const fechaInicioObj = new Date(inicio + 'T00:00:00');
+    const fechaFinObj = new Date(fin + 'T00:00:00');
+
+    const yearsDiff = fechaFinObj.getFullYear() - fechaInicioObj.getFullYear();
+    const monthsDiff = fechaFinObj.getMonth() - fechaInicioObj.getMonth();
+
+    let meses = yearsDiff * 12 + monthsDiff;
+
+    // Si el día de fin es mayor o igual al día de inicio, sumamos 1 mes más
+    if (fechaFinObj.getDate() >= fechaInicioObj.getDate()) {
+      meses += 1;
+    }
+
+    return Math.max(meses, 0);
+  };
+
+  const mesesDiferencia = calcularMesesDiferencia(fechaInicio, fechaFin);
+
+  // Calcular monto total
+  const totalMonto = precioPorMes * mesesDiferencia;
+
   const onSubmit = async (data: MembresiaFormData) => {
     setIsSubmitting(true);
     setError(null);
