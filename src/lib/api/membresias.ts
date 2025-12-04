@@ -26,6 +26,7 @@ export interface CrearMembresiaDto {
   fechaInicio: string;
   fechaFin: string;
   idsActividades: number[];
+  costoTotal: number;
 }
 
 export interface AsignarActividadDto {

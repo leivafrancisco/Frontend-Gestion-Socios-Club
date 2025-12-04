@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -27,6 +27,24 @@ const membresiaSchema = z.object({
   fechaInicio: z.string().min(1, 'Debe ingresar la fecha de inicio'),
   fechaFin: z.string().min(1, 'Debe ingresar la fecha de fin'),
   actividadesIds: z.array(z.number()).min(1, 'Debe seleccionar al menos una actividad'),
+  costoTotal: z.number().min(0.01, 'El monto total debe ser mayor a 0'),
+}).refine((data) => {
+  // Validar que la fecha de inicio no sea anterior a hoy
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fechaInicio = new Date(data.fechaInicio + 'T00:00:00');
+  return fechaInicio >= hoy;
+}, {
+  message: 'La fecha de inicio no puede ser anterior a la fecha actual',
+  path: ['fechaInicio'],
+}).refine((data) => {
+  // Validar que la fecha de fin sea posterior a la fecha de inicio
+  const fechaInicio = new Date(data.fechaInicio + 'T00:00:00');
+  const fechaFin = new Date(data.fechaFin + 'T00:00:00');
+  return fechaFin > fechaInicio;
+}, {
+  message: 'La fecha de fin debe ser posterior a la fecha de inicio',
+  path: ['fechaFin'],
 });
 
 type MembresiaFormData = z.infer<typeof membresiaSchema>;
@@ -54,12 +72,14 @@ export default function NuevaMembresiaPage() {
     formState: { errors },
     setValue,
     watch,
+    control,
   } = useForm<MembresiaFormData>({
     resolver: zodResolver(membresiaSchema),
     defaultValues: {
       fechaInicio: currentDate.toISOString().split('T')[0],
       fechaFin: '',
       actividadesIds: [],
+      costoTotal: undefined as any, // Start undefined to avoid validation errors
     },
   });
 
@@ -88,15 +108,38 @@ export default function NuevaMembresiaPage() {
     try {
       setIsLoadingSocios(true);
       setError(null);
+      console.log('Buscando socios con criterio:', searchSocio);
       const data = await sociosService.obtenerTodos({ search: searchSocio, estaActivo: true });
+      console.log('Socios encontrados:', data);
       setSocios(data);
 
       if (data.length === 0) {
         setError('No se encontraron socios con ese criterio de búsqueda');
       }
-    } catch (error) {
-      console.error('Error al buscar socios:', error);
-      setError('Error al buscar socios. Por favor, intenta de nuevo.');
+    } catch (error: any) {
+      console.error('Error completo al buscar socios:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
+
+      let errorMessage = 'Error al buscar socios. ';
+
+      if (error.response) {
+        // El servidor respondió con un código de estado fuera del rango 2xx
+        errorMessage += `Código de error: ${error.response.status}. `;
+        if (error.response.data?.message) {
+          errorMessage += error.response.data.message;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage += error.response.data;
+        }
+      } else if (error.request) {
+        // La petición fue hecha pero no se recibió respuesta
+        errorMessage += 'No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose.';
+      } else {
+        // Algo pasó al configurar la petición
+        errorMessage += error.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoadingSocios(false);
     }
@@ -124,41 +167,37 @@ export default function NuevaMembresiaPage() {
 
     setSelectedActividades(newSelected);
     setValue('actividadesIds', newSelected);
+
+    // Calcular el precio sugerido basado en las actividades seleccionadas
+    const precioSugerido = newSelected.reduce((total, id) => {
+      const actividad = actividades.find(a => a.id === id);
+      return total + (actividad?.precio || 0);
+    }, 0);
+
+    // Actualizar automáticamente el campo costoTotal con el precio sugerido
+    // Usar shouldValidate y shouldDirty para forzar la actualización del input
+    setValue('costoTotal', precioSugerido, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
+
     setError(null);
   };
 
-  // Calcular precio por mes (suma de todas las actividades seleccionadas)
-  const precioPorMes = selectedActividades.reduce((total, actividadId) => {
+  // Calcular precio mensual sugerido (suma de todas las actividades seleccionadas)
+  // Esto es solo informativo para ayudar al administrador
+  const precioMensualSugerido = selectedActividades.reduce((total, actividadId) => {
     const actividad = actividades.find(a => a.id === actividadId);
     return total + (actividad?.precio || 0);
   }, 0);
 
-  // Calcular diferencia de meses entre fechas
-  const calcularMesesDiferencia = (inicio: string, fin: string): number => {
-    if (!inicio || !fin) return 0;
-
-    const fechaInicioObj = new Date(inicio + 'T00:00:00');
-    const fechaFinObj = new Date(fin + 'T00:00:00');
-
-    const yearsDiff = fechaFinObj.getFullYear() - fechaInicioObj.getFullYear();
-    const monthsDiff = fechaFinObj.getMonth() - fechaInicioObj.getMonth();
-
-    let meses = yearsDiff * 12 + monthsDiff;
-
-    // Si el día de fin es mayor o igual al día de inicio, sumamos 1 mes más
-    if (fechaFinObj.getDate() >= fechaInicioObj.getDate()) {
-      meses += 1;
-    }
-
-    return Math.max(meses, 0);
-  };
-
-  const mesesDiferencia = calcularMesesDiferencia(fechaInicio, fechaFin);
-
-  // Calcular monto total
-  const totalMonto = precioPorMes * mesesDiferencia;
-
   const onSubmit = async (data: MembresiaFormData) => {
+    console.log('=== INICIO onSubmit ===');
+    console.log('Data recibida del formulario:', data);
+    console.log('Tipo de costoTotal:', typeof data.costoTotal);
+    console.log('Valor de costoTotal:', data.costoTotal);
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -169,20 +208,33 @@ export default function NuevaMembresiaPage() {
         fechaInicio: data.fechaInicio,
         fechaFin: data.fechaFin,
         idsActividades: data.actividadesIds,
+        costoTotal: data.costoTotal,
       };
 
+      console.log('Data a enviar al backend:', membresiaData);
+      console.log('Data a enviar (JSON):', JSON.stringify(membresiaData, null, 2));
+
       await membresiasService.crear(membresiaData);
+
+      console.log('✅ Membresía creada exitosamente');
       setSuccess('¡Membresía creada exitosamente!');
 
       setTimeout(() => {
         router.push('/dashboard/membresias');
       }, 1500);
     } catch (err: any) {
+      console.error('❌ ERROR al crear membresía:', err);
+      console.error('Error completo:', err);
+      console.error('Error response:', err.response);
+      console.error('Error response data:', err.response?.data);
+      console.error('Error response status:', err.response?.status);
+
       const errorMessage =
         err.response?.data?.message || err.response?.data || err.message || 'Error al crear la membresía';
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setIsSubmitting(false);
+      console.log('=== FIN onSubmit ===');
     }
   };
 
@@ -475,59 +527,91 @@ export default function NuevaMembresiaPage() {
             </div>
           </div>
 
-          {/* Resumen y Total */}
-          {selectedActividades.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
-              <div className="space-y-4">
-                {/* Desglose del cálculo */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 border-b border-blue-500">
-                  <div>
-                    <p className="text-xs text-blue-200 mb-1">Precio por mes</p>
-                    <p className="text-2xl font-bold">${precioPorMes.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-blue-100 mt-1">
-                      {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-200 mb-1">Cantidad de meses</p>
-                    <p className="text-2xl font-bold">× {mesesDiferencia}</p>
-                    {fechaInicio && fechaFin && (
-                      <p className="text-xs text-blue-100 mt-1">
-                        {new Date(fechaInicio + 'T00:00:00').toLocaleDateString('es-AR', { month: 'short', day: 'numeric' })} - {new Date(fechaFin + 'T00:00:00').toLocaleDateString('es-AR', { month: 'short', day: 'numeric' })}
+          {/* Paso 4: Monto Total */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                  4
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Monto Total de la Membresía</h2>
+                  <p className="text-sm text-gray-600">Ingresa el monto total que se cobrará por esta membresía</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Información del precio sugerido */}
+              {selectedActividades.length > 0 && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">Precio mensual sugerido:</p>
+                      <p className="text-xl font-bold text-blue-900">
+                        ${precioMensualSugerido.toLocaleString('es-AR', { minimumFractionDigits: 2 })} / mes
                       </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-200 mb-1">Total de la Membresía</p>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-6 h-6" />
-                      <p className="text-3xl font-bold">
-                        ${totalMonto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      <p className="text-xs text-blue-700 mt-1">
+                        Basado en las {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad seleccionada' : 'actividades seleccionadas'}
                       </p>
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Resumen textual */}
-                {mesesDiferencia > 0 && (
-                  <div className="text-center">
-                    <p className="text-sm text-blue-100">
-                      Cálculo: ${precioPorMes.toFixed(2)} × {mesesDiferencia} {mesesDiferencia === 1 ? 'mes' : 'meses'} = ${totalMonto.toFixed(2)}
-                    </p>
-                  </div>
+              {/* Campo de monto total */}
+              <div>
+                <label htmlFor="costoTotal" className="block text-sm font-medium text-gray-700 mb-2">
+                  <DollarSign className="w-4 h-4 inline mr-2" />
+                  Monto Total a Cobrar *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg font-semibold">
+                    $
+                  </span>
+                  <Controller
+                    name="costoTotal"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="number"
+                        id="costoTotal"
+                        step="0.01"
+                        min="0.01"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Si el input está vacío, dejar como undefined
+                          if (value === '' || value === null) {
+                            field.onChange(undefined);
+                            return;
+                          }
+                          // Convertir el valor a número
+                          const numValue = parseFloat(value);
+                          field.onChange(isNaN(numValue) ? undefined : numValue);
+                        }}
+                        onBlur={field.onBlur}
+                        value={field.value !== undefined && field.value !== null ? field.value : ''}
+                        name={field.name}
+                        ref={field.ref}
+                        className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
+                        placeholder="0.00"
+                      />
+                    )}
+                  />
+                </div>
+                {errors.costoTotal && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.costoTotal.message}
+                  </p>
                 )}
-
-                {/* Advertencia si no hay período seleccionado */}
-                {mesesDiferencia === 0 && fechaInicio && fechaFin && (
-                  <div className="bg-yellow-500 bg-opacity-20 border border-yellow-300 rounded-lg p-3 text-center">
-                    <p className="text-sm text-yellow-100">
-                      ⚠️ La diferencia de meses es 0. Verifica las fechas de inicio y fin.
-                    </p>
-                  </div>
-                )}
+                <p className="mt-2 text-xs text-gray-500">
+                  Este campo se rellena automáticamente con el precio mensual sugerido. Puedes modificarlo según sea necesario. Este es el monto total que el socio deberá pagar por toda la membresía (no por mes).
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Botones de Acción */}
           <div className="flex justify-end gap-4 pt-4">
@@ -566,7 +650,7 @@ export default function NuevaMembresiaPage() {
               <ul className="list-disc list-inside space-y-1">
                 <li>No se permite crear membresías con fechas que se solapen para el mismo socio</li>
                 <li>La fecha de fin debe ser posterior a la fecha de inicio</li>
-                <li>El monto total se calcula automáticamente según las actividades seleccionadas</li>
+                <li>El monto total debe ser ingresado manualmente por el administrador</li>
                 <li>El socio debe completar el pago para activar la membresía</li>
               </ul>
             </div>
