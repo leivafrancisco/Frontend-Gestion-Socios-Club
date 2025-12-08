@@ -28,9 +28,21 @@ import Link from 'next/link';
 const registrarPagoSchema = z.object({
   idSocio: z.number({ required_error: 'Selecciona un socio' }).min(1, 'Selecciona un socio'),
   idMembresia: z.number({ required_error: 'Selecciona una membresía' }).min(1, 'Selecciona una membresía'),
-  idMetodoPago: z.number({ required_error: 'Selecciona un método de pago' }).min(1, 'Selecciona un método de pago'),
+  idMetodoPago: z.number({
+    required_error: 'Debes seleccionar el método de pago correspondiente',
+    invalid_type_error: 'Debes seleccionar el método de pago correspondiente'
+  }).min(1, 'Debes seleccionar el método de pago correspondiente'),
   monto: z.number({ required_error: 'Ingresa el monto' }).positive('El monto debe ser mayor a 0'),
-  fechaPago: z.string().optional(),
+  fechaPago: z.string().min(1, 'Debe ingresar la fecha de pago'),
+}).refine((data) => {
+  // Validar que la fecha de pago no sea anterior a la fecha actual
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fechaPago = new Date(data.fechaPago + 'T00:00:00');
+  return fechaPago <= hoy;
+}, {
+  message: 'La fecha de pago no puede ser posterior a la fecha actual',
+  path: ['fechaPago'],
 });
 
 type RegistrarPagoFormData = z.infer<typeof registrarPagoSchema>;
@@ -159,7 +171,7 @@ export default function NuevoPagoPage() {
         idMembresia: data.idMembresia,
         idMetodoPago: data.idMetodoPago,
         monto: data.monto,
-        fechaPago: data.fechaPago || undefined,
+        fechaPago: data.fechaPago,
       });
 
       setSuccess('¡Pago registrado exitosamente!');
@@ -376,39 +388,50 @@ export default function NuevoPagoPage() {
                               : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
                           }`}
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <input
-                                  type="radio"
-                                  checked={membresiaSeleccionada?.id === membresia.id}
-                                  onChange={() => {}}
-                                  className="h-5 w-5 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div>
-                                  <p className="font-semibold text-gray-900">
-                                    {membresia.periodoTexto || `${membresia.periodoMes}/${membresia.periodoAnio}`}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {membresia.actividades.length} actividad(es)
-                                  </p>
-                                </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-3">
+                              <input
+                                type="radio"
+                                checked={membresiaSeleccionada?.id === membresia.id}
+                                onChange={() => {}}
+                                className="h-5 w-5 text-blue-600 focus:ring-blue-500"
+                              />
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">
+                                  Membresía #{membresia.id}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(membresia.fechaInicio).toLocaleDateString('es-AR')} - {new Date(membresia.fechaFin).toLocaleDateString('es-AR')}
+                                </p>
                               </div>
+                            </div>
 
-                              {/* Desglose */}
-                              <div className="ml-7 mt-2 space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600">Total cargado:</span>
-                                  <span className="font-medium">${membresia.totalCargado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-600">Pagado:</span>
-                                  <span className="font-medium text-green-600">${membresia.totalPagado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between pt-2 border-t border-gray-200">
-                                  <span className="font-semibold text-gray-900">Saldo pendiente:</span>
-                                  <span className="font-bold text-red-600 text-lg">${membresia.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-                                </div>
+                            {/* Actividades incluidas */}
+                            <div className="ml-7 mb-3">
+                              <p className="text-xs font-semibold text-gray-700 mb-2">Actividades incluidas:</p>
+                              <div className="space-y-1">
+                                {membresia.actividades.map((actividad) => (
+                                  <div key={actividad.idActividad} className="flex items-center justify-between text-xs bg-blue-50 px-2 py-1 rounded">
+                                    <span className="text-gray-700">{actividad.nombreActividad}</span>
+                                    <span className="font-medium text-blue-700">${actividad.precioAlMomento.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Desglose financiero */}
+                            <div className="ml-7 space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Monto Total:</span>
+                                <span className="font-medium">${membresia.totalCargado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Pagado:</span>
+                                <span className="font-medium text-green-600">${membresia.totalPagado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div className="flex justify-between pt-2 border-t border-gray-200">
+                                <span className="font-semibold text-gray-900">Saldo pendiente:</span>
+                                <span className="font-bold text-red-600 text-lg">${membresia.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                           </div>
@@ -474,7 +497,7 @@ export default function NuevoPagoPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Calendar className="w-4 h-4 inline mr-2" />
-                      Fecha de Pago
+                      Fecha de Pago *
                     </label>
                     <input
                       {...register('fechaPago')}
@@ -482,6 +505,12 @@ export default function NuevoPagoPage() {
                       max={new Date().toISOString().split('T')[0]}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    {errors.fechaPago && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.fechaPago.message}
+                      </p>
+                    )}
                   </div>
 
                   {/* Monto */}
@@ -565,7 +594,7 @@ export default function NuevoPagoPage() {
                   <p className="text-sm text-green-100">Para</p>
                   <p className="text-lg font-semibold">{socioSeleccionado?.nombre} {socioSeleccionado?.apellido}</p>
                   <p className="text-xs text-green-200 mt-1">
-                    {membresiaSeleccionada.periodoTexto || `${membresiaSeleccionada.periodoMes}/${membresiaSeleccionada.periodoAnio}`}
+                    Membresía #{membresiaSeleccionada.id}
                   </p>
                 </div>
               </div>

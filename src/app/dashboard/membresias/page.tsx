@@ -12,6 +12,7 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -19,6 +20,7 @@ import { es } from 'date-fns/locale';
 export default function MembresiasPage() {
   const [membresias, setMembresias] = useState<Membresia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     cargarMembresias();
@@ -43,6 +45,23 @@ export default function MembresiasPage() {
     const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anio = fecha.getFullYear();
     return `${dia}/${mes}/${anio}`;
+  };
+
+  const handleEliminar = async (id: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta membresía? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await membresiasService.eliminar(id);
+      await cargarMembresias();
+    } catch (error) {
+      console.error('Error al eliminar membresía:', error);
+      alert('Error al eliminar la membresía. Por favor, intenta nuevamente.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -110,7 +129,7 @@ export default function MembresiasPage() {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[400px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -213,13 +232,26 @@ export default function MembresiasPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Link
-                        href={`/dashboard/membresias/${membresia.id}`}
-                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors group inline-flex"
-                        title="Ver detalle"
-                      >
-                        <Eye className="w-4 h-4 text-gray-500 group-hover:text-blue-600" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Ver detalle */}
+                        <Link
+                          href={`/dashboard/membresias/${membresia.id}`}
+                          className="p-2 rounded-lg border-2 border-blue-600 bg-blue-600 hover:bg-blue-700 hover:border-blue-700 transition-colors group"
+                          title="Ver detalle"
+                        >
+                          <Eye className="w-4 h-4 text-white" />
+                        </Link>
+
+                        {/* Eliminar */}
+                        <button
+                          onClick={() => handleEliminar(membresia.id)}
+                          disabled={isDeleting}
+                          className="p-2 rounded-lg border-2 border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
