@@ -10,6 +10,8 @@ export interface Usuario {
   nombreUsuario: string;
   nombreCompleto: string;
   email: string;
+  dni?: string;
+  fechaNacimiento?: string;
   rol: string;
   estaActivo: boolean;
 }
@@ -19,21 +21,42 @@ export interface LoginResponse {
   usuario: Usuario;
 }
 
+export interface ActualizarPerfilDto {
+  nombre?: string;
+  apellido?: string;
+  email?: string;
+  dni?: string;
+  fechaNacimiento?: string;
+  password?: string;
+  passwordActual?: string;
+}
+
 export const authService = {
   async login(datos: LoginDto): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>('/auth/login', datos);
-    
+
     // Guardar token y usuario en localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('usuario', JSON.stringify(response.data.usuario));
     }
-    
+
     return response.data;
   },
 
   async obtenerUsuarioActual(): Promise<Usuario> {
     const response = await apiClient.get<Usuario>('/auth/me');
+    return response.data;
+  },
+
+  async actualizarPerfil(datos: ActualizarPerfilDto): Promise<Usuario> {
+    const response = await apiClient.put<Usuario>('/auth/perfil', datos);
+
+    // Actualizar usuario en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('usuario', JSON.stringify(response.data));
+    }
+
     return response.data;
   },
 

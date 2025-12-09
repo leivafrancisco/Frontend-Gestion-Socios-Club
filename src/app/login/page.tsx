@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { authService } from '@/lib/api/auth';
 import { LogIn, Loader2 } from 'lucide-react';
 
@@ -43,14 +44,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-950 p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500 rounded-full mb-4">
-              <LogIn className="w-8 h-8 text-white" />
+            <div className="flex justify-center mb-6">
+              <Image
+                src="/assets/images/regatas.jpg"
+                alt="Regatas Corrientes"
+                width={220}
+                height={220}
+                className="rounded-full object-cover"
+                priority
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800">Sistema de Gestión</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Regatas Corrientes</h1>
+            <p className="text-lg text-gray-600">Sistema de Gestión</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

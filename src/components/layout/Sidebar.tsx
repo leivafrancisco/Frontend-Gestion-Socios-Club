@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -228,11 +229,28 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-center border-b border-gray-700">
+      <div className="h-16 flex items-center justify-center gap-3 border-b border-gray-700 px-2">
         {isCollapsed ? (
-          <span className="text-2xl font-bold text-blue-400">C</span>
+          <div className="w-10 h-10 relative">
+            <Image
+              src="/assets/images/regatas.jpg"
+              alt="RC"
+              fill
+              className="rounded-full object-cover"
+            />
+          </div>
         ) : (
-          <span className="text-xl font-bold text-blue-400">Club Manager</span>
+          <>
+            <div className="w-10 h-10 relative flex-shrink-0">
+              <Image
+                src="/assets/images/regatas.jpg"
+                alt="Regatas Corrientes"
+                fill
+                className="rounded-full object-cover"
+              />
+            </div>
+            <span className="text-lg font-bold text-blue-400">Regatas Corrientes</span>
+          </>
         )}
       </div>
 
