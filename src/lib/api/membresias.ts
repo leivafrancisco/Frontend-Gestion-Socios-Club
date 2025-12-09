@@ -26,7 +26,17 @@ export interface CrearMembresiaDto {
   fechaInicio: string;
   fechaFin: string;
   idsActividades: number[];
-  costoTotal: number;
+
+  // Campos del pago inicial (obligatorios)
+  monto: number; // Monto del pago inicial (debe ser > 0)
+  idMetodoPago: number; // ID del método de pago seleccionado
+  idUsuarioProcesa: number; // ID del usuario autenticado
+}
+
+export interface ActualizarMembresiaDto {
+  fechaInicio?: string;
+  fechaFin?: string;
+  idsActividades?: number[];
 }
 
 export interface AsignarActividadDto {
@@ -44,6 +54,7 @@ export interface FiltrosMembresias {
   fechaDesde?: string;
   fechaHasta?: string;
   soloImpagas?: boolean;
+  estadoVigencia?: 'todas' | 'vigentes' | 'vencidas' | 'proximas_vencer';
   page?: number;
   pageSize?: number;
 }
@@ -56,6 +67,7 @@ export const membresiasService = {
     if (filtros?.fechaDesde) params.append('fechaDesde', filtros.fechaDesde);
     if (filtros?.fechaHasta) params.append('fechaHasta', filtros.fechaHasta);
     if (filtros?.soloImpagas !== undefined) params.append('soloImpagas', filtros.soloImpagas.toString());
+    if (filtros?.estadoVigencia) params.append('estadoVigencia', filtros.estadoVigencia);
     if (filtros?.page) params.append('page', filtros.page.toString());
     if (filtros?.pageSize) params.append('pageSize', filtros.pageSize.toString());
 
@@ -81,6 +93,11 @@ export const membresiasService = {
 
   async crear(datos: CrearMembresiaDto): Promise<Membresia> {
     const response = await apiClient.post<Membresia>('/membresias', datos);
+    return response.data;
+  },
+
+  async actualizar(id: number, datos: ActualizarMembresiaDto): Promise<Membresia> {
+    const response = await apiClient.put<Membresia>(`/membresias/${id}`, datos);
     return response.data;
   },
 

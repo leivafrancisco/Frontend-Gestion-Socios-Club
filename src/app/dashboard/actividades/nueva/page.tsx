@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Star, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { actividadesService, CrearActividadDto } from '@/lib/api/actividades';
 
@@ -25,6 +25,7 @@ const actividadSchema = z.object({
     .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: 'El precio debe ser un número válido mayor o igual a 0',
     }),
+  esCuotaBase: z.boolean().default(false),
 });
 
 type ActividadFormData = z.infer<typeof actividadSchema>;
@@ -53,6 +54,7 @@ export default function NuevaActividadPage() {
         nombre: data.nombre.trim(),
         descripcion: data.descripcion?.trim() || undefined,
         precio: Number(data.precio),
+        esCuotaBase: data.esCuotaBase,
       };
 
       const nuevaActividad = await actividadesService.crear(actividadData);
@@ -166,6 +168,32 @@ export default function NuevaActividadPage() {
               {errors.precio && (
                 <p className="mt-1 text-sm text-red-600">{errors.precio.message}</p>
               )}
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="esCuotaBase"
+                  {...register('esCuotaBase')}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <div className="flex-1">
+                  <label htmlFor="esCuotaBase" className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                    <Star className="w-4 h-4 text-blue-600" />
+                    Marcar como Cuota Base
+                  </label>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Las actividades marcadas como cuota base son obligatorias para todos los socios del club.
+                  </p>
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-800">
+                      <strong>Importante:</strong> Solo debe existir una actividad marcada como cuota base. Esta será la membresía principal del club.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

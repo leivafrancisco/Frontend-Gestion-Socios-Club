@@ -77,7 +77,7 @@ export default function NuevoUsuarioPage() {
     try {
       const usuarioData: CrearUsuarioDto = {
         nombreUsuario: data.nombreUsuario.trim(),
-        contrasena: data.contrasena,
+        password: data.contrasena,
         nombre: data.nombre.trim(),
         apellido: data.apellido.trim(),
         email: data.email.trim().toLowerCase(),

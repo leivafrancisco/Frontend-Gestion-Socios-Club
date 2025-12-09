@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { actividadesService, type Actividad } from '@/lib/api/actividades';
-import { Plus, Edit, Trash2, DollarSign, X, Calendar, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, X, Calendar, FileText, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -133,10 +133,28 @@ export default function ActividadesPage() {
                 </tr>
               ) : (
                 actividades.map((actividad) => (
-                  <tr key={actividad.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => abrirModal(actividad)}>
+                  <tr
+                    key={actividad.id}
+                    className={`cursor-pointer transition-colors ${
+                      actividad.esCuotaBase
+                        ? 'bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500'
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => abrirModal(actividad)}
+                  >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {actividad.nombre}
+                      <div className="flex items-center gap-2">
+                        {actividad.esCuotaBase && (
+                          <Star className="w-4 h-4 text-blue-600 fill-blue-600" />
+                        )}
+                        <div className="text-sm font-medium text-gray-900">
+                          {actividad.nombre}
+                        </div>
+                        {actividad.esCuotaBase && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            CUOTA BASE
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -185,11 +203,35 @@ export default function ActividadesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={cerrarModal}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
             {/* Header del Modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Detalles de la Actividad</h2>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${
+              actividadSeleccionada.esCuotaBase
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-600'
+                : 'border-gray-200'
+            }`}>
+              <div className="flex items-center gap-3">
+                {actividadSeleccionada.esCuotaBase && (
+                  <Star className="w-6 h-6 text-white fill-white" />
+                )}
+                <div>
+                  <h2 className={`text-xl font-semibold ${
+                    actividadSeleccionada.esCuotaBase ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Detalles de la Actividad
+                  </h2>
+                  {actividadSeleccionada.esCuotaBase && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white text-blue-700 mt-1">
+                      CUOTA BASE - OBLIGATORIA
+                    </span>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={cerrarModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className={`transition-colors ${
+                  actividadSeleccionada.esCuotaBase
+                    ? 'text-white hover:text-gray-200'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
               >
                 <X className="w-6 h-6" />
               </button>
@@ -198,10 +240,24 @@ export default function ActividadesPage() {
             {/* Contenido del Modal */}
             <div className="px-6 py-6 space-y-6">
               {/* ID y Nombre */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+              <div className="grid grid-cols-1 gap-6">
+                <div className={`${
+                  actividadSeleccionada.esCuotaBase
+                    ? 'bg-blue-50 border border-blue-200 rounded-lg p-4'
+                    : ''
+                }`}>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Nombre</label>
-                  <p className="text-lg font-semibold text-gray-900">{actividadSeleccionada.nombre}</p>
+                  <div className="flex items-center gap-2">
+                    {actividadSeleccionada.esCuotaBase && (
+                      <Star className="w-5 h-5 text-blue-600 fill-blue-600" />
+                    )}
+                    <p className="text-lg font-semibold text-gray-900">{actividadSeleccionada.nombre}</p>
+                  </div>
+                  {actividadSeleccionada.esCuotaBase && (
+                    <p className="text-sm text-blue-700 mt-2">
+                      Esta es una actividad obligatoria para todos los socios del club.
+                    </p>
+                  )}
                 </div>
               </div>
 

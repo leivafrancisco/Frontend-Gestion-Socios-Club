@@ -6,18 +6,22 @@ export interface Actividad {
   descripcion?: string;
   precio: number;
   fechaCreacion: string;
+  esCuotaBase: boolean;
+  estaActivo: boolean;
 }
 
 export interface CrearActividadDto {
   nombre: string;
   descripcion?: string;
   precio: number;
+  esCuotaBase: boolean;
 }
 
 export interface ActualizarActividadDto {
   nombre: string;
   descripcion?: string;
   precio: number;
+  esCuotaBase: boolean;
 }
 
 export const actividadesService = {

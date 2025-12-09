@@ -46,7 +46,8 @@ export default function DetalleMembresiaPage() {
     }
   };
 
-  const formatearFecha = (fechaString: string): string => {
+  const formatearFecha = (fechaString: string | undefined | null): string => {
+    if (!fechaString) return 'No disponible';
     // Si la fecha no tiene timestamp, agregarle T00:00:00 para evitar problemas de zona horaria
     const fechaParaParsear = fechaString.includes('T') ? fechaString : fechaString + 'T00:00:00';
     const fecha = new Date(fechaParaParsear);

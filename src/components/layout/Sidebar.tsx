@@ -10,11 +10,9 @@ import {
   CreditCard,
   Calendar,
   Activity,
-  Settings,
   ChevronDown,
   ChevronRight,
   UserPlus,
-  UserCheck,
   ClipboardList,
   Receipt,
   DollarSign,
@@ -23,10 +21,21 @@ import {
   Dumbbell,
   ListChecks,
   UserCog,
-  Shield,
-  Database,
 } from 'lucide-react';
 import { authService } from '@/lib/api/auth';
+
+// Función para normalizar el nombre del rol del backend a los valores usados internamente
+const normalizeRole = (rol: string | undefined): string | null => {
+  if (!rol) return null;
+  const rolLower = rol.toLowerCase();
+  
+  // Mapeo de roles del backend a roles internos
+  if (rolLower === 'administrador' || rolLower === 'admin') return 'admin';
+  if (rolLower === 'superadmin' || rolLower === 'superadministrador') return 'superadmin';
+  if (rolLower === 'recepcionista') return 'recepcionista';
+  
+  return rolLower; // Para cualquier otro rol, devolver en minúsculas
+};
 
 interface MenuItem {
   label: string;
@@ -116,7 +125,7 @@ const menuItems: MenuItem[] = [
         label: 'Registro de Asistencias',
         href: '/dashboard/asistencias',
         icon: <CalendarDays className="w-4 h-4" />,
-        roles: ['superadmin', 'admin'], // Solo admin y superadmin ven historial completo
+        roles: ['superadmin', 'admin', 'recepcionista'], // Admin, superadmin y recepcionista pueden ver el listado
       },
       {
         label: 'Marcar Asistencia',
@@ -144,29 +153,10 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    label: 'Configuracion',
-    icon: <Settings className="w-5 h-5" />,
-    roles: ['admin', 'superadmin'], // Solo admin y superadmin
-    children: [
-      {
-        label: 'Usuarios',
-        href: '/dashboard/usuarios',
-        icon: <UserCog className="w-4 h-4" />,
-        roles: ['superadmin'], // Solo superadmin puede gestionar usuarios
-      },
-      {
-        label: 'Staff',
-        href: '/dashboard/configuracion/roles',
-        icon: <Shield className="w-4 h-4" />,
-        roles: ['superadmin'], // Solo superadmin puede gestionar roles
-      },
-      {
-        label: 'Sistema',
-        href: '/dashboard/configuracion/sistema',
-        icon: <Database className="w-4 h-4" />,
-        roles: ['superadmin'], // Solo superadmin puede ver configuración de sistema
-      },
-    ],
+    label: 'Usuarios',
+    icon: <UserCog className="w-5 h-5" />,
+    href: '/dashboard/usuarios',
+    roles: ['superadmin'], // Solo superadmin puede gestionar usuarios
   },
 ];
 
@@ -182,8 +172,8 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   useEffect(() => {
     const usuario = authService.getUsuario();
-    // Normalizar a minúsculas para evitar problemas de comparación
-    setUserRole(usuario?.rol?.toLowerCase() || null);
+    // Normalizar el rol usando la función de mapeo
+    setUserRole(normalizeRole(usuario?.rol));
   }, []);
 
   const toggleExpand = (label: string) => {

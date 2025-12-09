@@ -15,12 +15,15 @@ import {
   CheckCircle2,
   AlertCircle,
   DollarSign,
-  Activity
+  Activity,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { membresiasService, CrearMembresiaDto } from '@/lib/api/membresias';
 import { sociosService, type Socio } from '@/lib/api/socios';
 import { actividadesService, type Actividad } from '@/lib/api/actividades';
+import { pagosService, type MetodoPago } from '@/lib/api/pagos';
+import { authService } from '@/lib/api/auth';
 
 const membresiaSchema = z.object({
   idSocio: z.number().min(1, 'Debe seleccionar un socio'),
@@ -28,6 +31,9 @@ const membresiaSchema = z.object({
   fechaFin: z.string().min(1, 'Debe ingresar la fecha de fin'),
   actividadesIds: z.array(z.number()).min(1, 'Debe seleccionar al menos una actividad'),
   costoTotal: z.number().min(0.01, 'El monto total debe ser mayor a 0'),
+  // Campos de pago inicial
+  monto: z.number().min(0.01, 'El monto del pago debe ser mayor a cero'),
+  idMetodoPago: z.number().min(1, 'Debe seleccionar un método de pago'),
 }).refine((data) => {
   // Validar que la fecha de inicio no sea anterior a hoy
   const hoy = new Date();
@@ -45,6 +51,12 @@ const membresiaSchema = z.object({
 }, {
   message: 'La fecha de fin debe ser posterior a la fecha de inicio',
   path: ['fechaFin'],
+}).refine((data) => {
+  // Validar que el monto no sea mayor que el costo total
+  return data.monto <= data.costoTotal;
+}, {
+  message: 'El monto del pago no puede ser mayor al costo total de la membresía',
+  path: ['monto'],
 });
 
 type MembresiaFormData = z.infer<typeof membresiaSchema>;
@@ -61,6 +73,7 @@ export default function NuevaMembresiaPage() {
   const [searchSocio, setSearchSocio] = useState('');
   const [socioSeleccionado, setSocioSeleccionado] = useState<Socio | null>(null);
   const [isLoadingSocios, setIsLoadingSocios] = useState(false);
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
 
   const currentDate = new Date();
   const [fechaInicio, setFechaInicio] = useState(currentDate.toISOString().split('T')[0]);
@@ -87,6 +100,7 @@ export default function NuevaMembresiaPage() {
 
   useEffect(() => {
     cargarActividades();
+    cargarMetodosPago();
   }, []);
 
   const cargarActividades = async () => {
@@ -96,6 +110,16 @@ export default function NuevaMembresiaPage() {
     } catch (error) {
       console.error('Error al cargar actividades:', error);
       setError('Error al cargar las actividades disponibles');
+    }
+  };
+
+  const cargarMetodosPago = async () => {
+    try {
+      const data = await pagosService.obtenerMetodosPago();
+      setMetodosPago(data.filter(m => m.estaActivo));
+    } catch (error) {
+      console.error('Error al cargar métodos de pago:', error);
+      setError('Error al cargar los métodos de pago disponibles');
     }
   };
 
@@ -175,8 +199,14 @@ export default function NuevaMembresiaPage() {
     }, 0);
 
     // Actualizar automáticamente el campo costoTotal con el precio sugerido
-    // Usar shouldValidate y shouldDirty para forzar la actualización del input
     setValue('costoTotal', precioSugerido, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
+
+    // Actualizar automáticamente el monto del pago con el precio sugerido (pago completo por defecto)
+    setValue('monto', precioSugerido, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true
@@ -195,20 +225,47 @@ export default function NuevaMembresiaPage() {
   const onSubmit = async (data: MembresiaFormData) => {
     console.log('=== INICIO onSubmit ===');
     console.log('Data recibida del formulario:', data);
-    console.log('Tipo de costoTotal:', typeof data.costoTotal);
-    console.log('Valor de costoTotal:', data.costoTotal);
 
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
+      // Obtener usuario autenticado
+      const usuario = authService.getUsuario();
+      if (!usuario) {
+        throw new Error('No hay usuario autenticado');
+      }
+
+      // Validar campos de pago
+      if (!data.monto || data.monto <= 0) {
+        setError('El monto del pago debe ser mayor a cero');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!data.idMetodoPago) {
+        setError('Debe seleccionar un método de pago');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data.monto > data.costoTotal) {
+        setError('El monto del pago no puede ser mayor al costo total de la membresía');
+        setIsSubmitting(false);
+        return;
+      }
+
       const membresiaData: CrearMembresiaDto = {
         idSocio: data.idSocio,
         fechaInicio: data.fechaInicio,
         fechaFin: data.fechaFin,
         idsActividades: data.actividadesIds,
         costoTotal: data.costoTotal,
+        // Campos de pago inicial
+        monto: data.monto,
+        idMetodoPago: data.idMetodoPago,
+        idUsuarioProcesa: usuario.id,
       };
 
       console.log('Data a enviar al backend:', membresiaData);
@@ -216,8 +273,8 @@ export default function NuevaMembresiaPage() {
 
       await membresiasService.crear(membresiaData);
 
-      console.log('✅ Membresía creada exitosamente');
-      setSuccess('¡Membresía creada exitosamente!');
+      console.log('✅ Membresía creada exitosamente con pago inicial');
+      setSuccess('¡Membresía creada exitosamente con el pago inicial registrado!');
 
       setTimeout(() => {
         router.push('/dashboard/membresias');
@@ -229,9 +286,24 @@ export default function NuevaMembresiaPage() {
       console.error('Error response data:', err.response?.data);
       console.error('Error response status:', err.response?.status);
 
-      const errorMessage =
-        err.response?.data?.message || err.response?.data || err.message || 'Error al crear la membresía';
-      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+      // Manejar error con mensaje explícito del backend
+      let errorMessage = 'Error al crear la membresía';
+
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
       console.log('=== FIN onSubmit ===');
@@ -535,7 +607,7 @@ export default function NuevaMembresiaPage() {
                   4
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Monto Total de la Membresía</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Costo Total de la Membresía</h2>
                   <p className="text-sm text-gray-600">Ingresa el monto total que se cobrará por esta membresía</p>
                 </div>
               </div>
@@ -581,12 +653,10 @@ export default function NuevaMembresiaPage() {
                         min="0.01"
                         onChange={(e) => {
                           const value = e.target.value;
-                          // Si el input está vacío, dejar como undefined
                           if (value === '' || value === null) {
                             field.onChange(undefined);
                             return;
                           }
-                          // Convertir el valor a número
                           const numValue = parseFloat(value);
                           field.onChange(isNaN(numValue) ? undefined : numValue);
                         }}
@@ -607,9 +677,147 @@ export default function NuevaMembresiaPage() {
                   </p>
                 )}
                 <p className="mt-2 text-xs text-gray-500">
-                  Este campo se rellena automáticamente con el precio mensual sugerido. Puedes modificarlo según sea necesario. Este es el monto total que el socio deberá pagar por toda la membresía (no por mes).
+                  Este es el monto total que el socio deberá pagar por toda la membresía.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Paso 5: Datos del Pago Inicial */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 border-b border-green-600">
+              <div className="flex items-center gap-3">
+                <div className="bg-white text-green-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                  5
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Pago Inicial</h2>
+                  <p className="text-sm text-green-50">Registra el pago inicial para activar la membresía</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Alerta informativa */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-green-800">
+                    <p className="font-semibold mb-1">La membresía se creará con estado "Activa"</p>
+                    <p>
+                      Al crear la membresía, se registrará automáticamente el pago inicial. Puedes ingresar el monto completo o un pago parcial (seña/adelanto).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo Monto del Pago */}
+              <div>
+                <label htmlFor="monto" className="block text-sm font-medium text-gray-700 mb-2">
+                  <DollarSign className="w-4 h-4 inline mr-2" />
+                  Monto del Pago Inicial *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg font-semibold">
+                    $
+                  </span>
+                  <Controller
+                    name="monto"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="number"
+                        id="monto"
+                        step="0.01"
+                        min="0.01"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || value === null) {
+                            field.onChange(undefined);
+                            return;
+                          }
+                          const numValue = parseFloat(value);
+                          field.onChange(isNaN(numValue) ? undefined : numValue);
+                        }}
+                        onBlur={field.onBlur}
+                        value={field.value !== undefined && field.value !== null ? field.value : ''}
+                        name={field.name}
+                        ref={field.ref}
+                        className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-semibold"
+                        placeholder="0.00"
+                      />
+                    )}
+                  />
+                </div>
+                {errors.monto && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.monto.message}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-gray-500">
+                  Puede ser igual o menor al costo total. Si es menor, el saldo pendiente podrá pagarse después.
+                </p>
+              </div>
+
+              {/* Campo Método de Pago */}
+              <div>
+                <label htmlFor="idMetodoPago" className="block text-sm font-medium text-gray-700 mb-2">
+                  <CreditCard className="w-4 h-4 inline mr-2" />
+                  Método de Pago *
+                </label>
+                <select
+                  id="idMetodoPago"
+                  {...register('idMetodoPago', { valueAsNumber: true })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Seleccione un método de pago</option>
+                  {metodosPago.map((metodo) => (
+                    <option key={metodo.id} value={metodo.id}>
+                      {metodo.nombre}
+                    </option>
+                  ))}
+                </select>
+                {errors.idMetodoPago && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.idMetodoPago.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Resumen del pago */}
+              {watch('costoTotal') && watch('monto') && watch('monto') <= watch('costoTotal') && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Resumen del Pago</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Costo Total:</span>
+                      <span className="font-semibold text-gray-900">
+                        ${watch('costoTotal').toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Pago Inicial:</span>
+                      <span className="font-semibold text-green-600">
+                        ${watch('monto').toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-gray-300">
+                      <span className="text-gray-600">Saldo Pendiente:</span>
+                      <span className={`font-bold ${(watch('costoTotal') - watch('monto')) === 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                        ${(watch('costoTotal') - watch('monto')).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {(watch('costoTotal') - watch('monto')) === 0 && (
+                      <div className="mt-2 flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="text-xs font-medium">Pago completo - Membresía totalmente paga</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -642,16 +850,17 @@ export default function NuevaMembresiaPage() {
         </form>
 
         {/* Información adicional */}
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-yellow-800">
-              <p className="font-semibold mb-1">Importante:</p>
+            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-green-800">
+              <p className="font-semibold mb-1">Información Importante:</p>
               <ul className="list-disc list-inside space-y-1">
+                <li>La membresía se creará con estado <strong>"Activa"</strong> inmediatamente</li>
+                <li>El pago inicial se registrará automáticamente al crear la membresía</li>
+                <li>Puedes registrar un pago completo o parcial (seña/adelanto)</li>
+                <li>Si hay saldo pendiente, podrás registrar pagos adicionales después</li>
                 <li>No se permite crear membresías con fechas que se solapen para el mismo socio</li>
-                <li>La fecha de fin debe ser posterior a la fecha de inicio</li>
-                <li>El monto total debe ser ingresado manualmente por el administrador</li>
-                <li>El socio debe completar el pago para activar la membresía</li>
               </ul>
             </div>
           </div>

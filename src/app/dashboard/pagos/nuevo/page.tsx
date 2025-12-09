@@ -144,9 +144,11 @@ export default function NuevoPagoPage() {
       setMembresiasPendientes(membresias);
 
       if (membresias.length === 0) {
-        setError('Este socio no tiene membresías pendientes de pago');
+        setSuccess('¡Excelente! Este socio está al día con sus pagos y no tiene saldos pendientes');
+        setError('');
       } else {
         setError('');
+        setSuccess('');
       }
     } catch (error) {
       console.error('Error al cargar membresías:', error);
@@ -173,6 +175,12 @@ export default function NuevoPagoPage() {
         monto: data.monto,
         fechaPago: data.fechaPago,
       });
+
+      console.log('Pago registrado:', pagoRegistrado);
+
+      if (!pagoRegistrado?.id) {
+        throw new Error('El servidor no devolvió un ID de pago válido');
+      }
 
       setSuccess('¡Pago registrado exitosamente!');
 

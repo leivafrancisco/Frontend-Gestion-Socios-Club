@@ -23,6 +23,13 @@ export default function ComprobantePagoPage() {
     try {
       setIsLoading(true);
       const id = Number(params.id);
+
+      if (!id || isNaN(id)) {
+        setError('ID de pago inválido');
+        setIsLoading(false);
+        return;
+      }
+
       const data = await pagosService.obtenerComprobante(id);
       setComprobante(data);
     } catch (error: any) {
@@ -94,7 +101,7 @@ export default function ComprobantePagoPage() {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-3xl font-bold mb-2">COMPROBANTE DE PAGO</h1>
-                <p className="text-blue-100">Sistema de Gestión de Club</p>
+                <p className="text-blue-100">Regatas Corrientes</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{comprobante.numeroComprobante}</p>

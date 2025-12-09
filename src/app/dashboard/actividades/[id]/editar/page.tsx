@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Star, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { actividadesService, ActualizarActividadDto, Actividad } from '@/lib/api/actividades';
 
@@ -25,6 +25,7 @@ const actividadSchema = z.object({
     .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
       message: 'El precio debe ser un número válido mayor o igual a 0',
     }),
+  esCuotaBase: z.boolean().default(false),
 });
 
 type ActividadFormData = z.infer<typeof actividadSchema>;
@@ -63,6 +64,7 @@ export default function EditarActividadPage() {
       setValue('nombre', data.nombre);
       setValue('descripcion', data.descripcion || '');
       setValue('precio', data.precio.toString());
+      setValue('esCuotaBase', data.esCuotaBase);
     } catch (err: any) {
       setError('Error al cargar los datos de la actividad');
       console.error('Error:', err);
@@ -81,6 +83,7 @@ export default function EditarActividadPage() {
         nombre: data.nombre.trim(),
         descripcion: data.descripcion?.trim() || undefined,
         precio: Number(data.precio),
+        esCuotaBase: data.esCuotaBase,
       };
 
       await actividadesService.actualizar(actividadId, actividadData);
@@ -133,11 +136,34 @@ export default function EditarActividadPage() {
       </div>
 
       <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900">Editar Actividad</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Actualiza la información de la actividad "{actividad.nombre}"
-          </p>
+        <div className={`px-6 py-4 border-b ${
+          actividad.esCuotaBase
+            ? 'bg-blue-50 border-blue-200'
+            : 'border-gray-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            {actividad.esCuotaBase && (
+              <Star className="w-6 h-6 text-blue-600 fill-blue-600" />
+            )}
+            <div className="flex-1">
+              <h1 className="text-xl font-semibold text-gray-900">Editar Actividad</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Actualiza la información de la actividad "{actividad.nombre}"
+              </p>
+            </div>
+            {actividad.esCuotaBase && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                CUOTA BASE
+              </span>
+            )}
+          </div>
+          {actividad.esCuotaBase && (
+            <div className="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-md">
+              <p className="text-sm text-blue-800">
+                Esta es una actividad obligatoria para todos los socios del club.
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
@@ -207,6 +233,32 @@ export default function EditarActividadPage() {
               {errors.precio && (
                 <p className="mt-1 text-sm text-red-600">{errors.precio.message}</p>
               )}
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="esCuotaBase"
+                  {...register('esCuotaBase')}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <div className="flex-1">
+                  <label htmlFor="esCuotaBase" className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                    <Star className="w-4 h-4 text-blue-600" />
+                    Marcar como Cuota Base
+                  </label>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Las actividades marcadas como cuota base son obligatorias para todos los socios del club.
+                  </p>
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-800">
+                      <strong>Importante:</strong> Solo debe existir una actividad marcada como cuota base. Esta será la membresía principal del club.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

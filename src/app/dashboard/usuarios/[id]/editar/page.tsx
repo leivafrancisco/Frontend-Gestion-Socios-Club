@@ -72,11 +72,18 @@ export default function EditarUsuarioPage() {
       const data = await usuariosService.obtenerPorId(usuarioId);
       setUsuario(data);
 
-      // Pre-llenar el formulario (asumiendo que la API devuelve estos campos)
-      const nombreCompleto = data.nombreCompleto.split(' ');
-      setValue('nombre', nombreCompleto[0]);
-      setValue('apellido', nombreCompleto.slice(1).join(' '));
-      setValue('email', data.email);
+      // Pre-llenar el formulario con los datos del usuario
+      setValue('nombre', data.nombre || '');
+      setValue('apellido', data.apellido || '');
+      setValue('email', data.email || '');
+      setValue('dni', data.dni || '');
+
+      // Formatear fecha de nacimiento para el input date
+      if (data.fechaNacimiento) {
+        const fecha = new Date(data.fechaNacimiento);
+        const fechaFormateada = fecha.toISOString().split('T')[0];
+        setValue('fechaNacimiento', fechaFormateada);
+      }
     } catch (err: any) {
       setError('Error al cargar los datos del usuario');
       console.error('Error:', err);

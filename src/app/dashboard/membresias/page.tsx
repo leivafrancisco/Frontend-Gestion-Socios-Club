@@ -13,28 +13,124 @@ import {
   XCircle,
   Eye,
   Trash2,
+  Edit,
+  Search,
+  X,
+  Filter,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+type EstadoVigencia = 'todas' | 'vigentes' | 'vencidas' | 'proximas_vencer';
+
 export default function MembresiasPage() {
   const [membresias, setMembresias] = useState<Membresia[]>([]);
+  const [membresiasFiltradas, setMembresiasFiltradas] = useState<Membresia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoVigencia, setEstadoVigencia] = useState<EstadoVigencia>('todas');
 
   useEffect(() => {
     cargarMembresias();
   }, []);
+
+  useEffect(() => {
+    filtrarMembresias();
+  }, [searchTerm, estadoVigencia, membresias]);
 
   const cargarMembresias = async () => {
     try {
       setIsLoading(true);
       const data = await membresiasService.obtenerTodas();
       setMembresias(data);
+      setMembresiasFiltradas(data);
     } catch (error) {
       console.error('Error al cargar membresías:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const filtrarMembresias = () => {
+    let filtradas = [...membresias];
+
+    // Filtrar por término de búsqueda
+    if (searchTerm.trim()) {
+      const termino = searchTerm.toLowerCase();
+      filtradas = filtradas.filter(m =>
+        m.nombreSocio.toLowerCase().includes(termino) ||
+        m.numeroSocio.toLowerCase().includes(termino)
+      );
+    }
+
+    // Filtrar por estado de vigencia
+    if (estadoVigencia !== 'todas') {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+
+      const en7Dias = new Date();
+      en7Dias.setDate(en7Dias.getDate() + 7);
+      en7Dias.setHours(23, 59, 59, 999);
+
+      filtradas = filtradas.filter(m => {
+        const fechaFin = new Date(m.fechaFin);
+        fechaFin.setHours(0, 0, 0, 0);
+
+        switch (estadoVigencia) {
+          case 'vigentes':
+            // Vigentes: fecha fin es mayor a hoy + 7 días
+            return fechaFin > en7Dias;
+          case 'vencidas':
+            // Vencidas: fecha fin es menor a hoy
+            return fechaFin < hoy;
+          case 'proximas_vencer':
+            // Próximas a vencer: fecha fin está entre hoy y los próximos 7 días
+            return fechaFin >= hoy && fechaFin <= en7Dias;
+          default:
+            return true;
+        }
+      });
+    }
+
+    setMembresiasFiltradas(filtradas);
+  };
+
+  const limpiarBusqueda = () => {
+    setSearchTerm('');
+  };
+
+  const obtenerEstadoVigenciaMembresia = (fechaFin: string) => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    const en7Dias = new Date();
+    en7Dias.setDate(en7Dias.getDate() + 7);
+    en7Dias.setHours(23, 59, 59, 999);
+
+    const fechaFinMembresia = new Date(fechaFin);
+    fechaFinMembresia.setHours(0, 0, 0, 0);
+
+    if (fechaFinMembresia < hoy) {
+      return {
+        label: 'Vencida',
+        color: 'bg-red-100 text-red-700 border-red-200',
+        icon: <AlertTriangle className="w-3 h-3" />,
+      };
+    } else if (fechaFinMembresia >= hoy && fechaFinMembresia <= en7Dias) {
+      return {
+        label: 'Por vencer',
+        color: 'bg-orange-100 text-orange-700 border-orange-200',
+        icon: <Clock className="w-3 h-3" />,
+      };
+    } else {
+      return {
+        label: 'Vigente',
+        color: 'bg-green-100 text-green-700 border-green-200',
+        icon: <CheckCircle className="w-3 h-3" />,
+      };
     }
   };
 
@@ -81,6 +177,66 @@ export default function MembresiasPage() {
         </Link>
       </div>
 
+      {/* Buscador y Filtros */}
+      <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Buscador */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre de socio o número de socio..."
+              className="w-full pl-11 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            {searchTerm && (
+              <button
+                onClick={limpiarBusqueda}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filtro por Estado de Vigencia */}
+          <div className="relative md:w-64">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <select
+              value={estadoVigencia}
+              onChange={(e) => setEstadoVigencia(e.target.value as EstadoVigencia)}
+              className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer"
+            >
+              <option value="todas">Todas las membresías</option>
+              <option value="vigentes">Vigentes (al día)</option>
+              <option value="proximas_vencer">Próximas a vencer (7 días)</option>
+              <option value="vencidas">Vencidas</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Contador de resultados */}
+        {(searchTerm || estadoVigencia !== 'todas') && (
+          <div className="mt-3 flex items-center gap-2 text-sm">
+            <p className="text-gray-600">
+              Mostrando {membresiasFiltradas.length} de {membresias.length} membresías
+            </p>
+            {(searchTerm || estadoVigencia !== 'todas') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setEstadoVigencia('todas');
+                }}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Stats Bar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex items-center gap-3">
@@ -89,7 +245,7 @@ export default function MembresiasPage() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Membresías</p>
-            <p className="text-xl font-bold text-gray-900">{membresias.length}</p>
+            <p className="text-xl font-bold text-gray-900">{membresiasFiltradas.length}</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex items-center gap-3">
@@ -99,7 +255,7 @@ export default function MembresiasPage() {
           <div>
             <p className="text-sm text-gray-500">Pagadas</p>
             <p className="text-xl font-bold text-green-600">
-              {membresias.filter((m) => m.saldo <= 0).length}
+              {membresiasFiltradas.filter((m) => m.saldo <= 0).length}
             </p>
           </div>
         </div>
@@ -110,7 +266,7 @@ export default function MembresiasPage() {
           <div>
             <p className="text-sm text-gray-500">Pendientes</p>
             <p className="text-xl font-bold text-red-600">
-              {membresias.filter((m) => m.saldo > 0).length}
+              {membresiasFiltradas.filter((m) => m.saldo > 0).length}
             </p>
           </div>
         </div>
@@ -121,7 +277,7 @@ export default function MembresiasPage() {
           <div>
             <p className="text-sm text-gray-500">Saldo Total</p>
             <p className="text-xl font-bold text-purple-600">
-              ${membresias.reduce((sum, m) => sum + m.saldo, 0).toFixed(2)}
+              ${membresiasFiltradas.reduce((sum, m) => sum + m.saldo, 0).toFixed(2)}
             </p>
           </div>
         </div>
@@ -134,10 +290,22 @@ export default function MembresiasPage() {
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
-          ) : membresias.length === 0 ? (
+          ) : membresiasFiltradas.length === 0 ? (
             <div className="text-center py-12">
               <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No hay membresías registradas</p>
+              <p className="text-gray-500">
+                {searchTerm
+                  ? 'No se encontraron membresías que coincidan con la búsqueda'
+                  : 'No hay membresías registradas'}
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={limpiarBusqueda}
+                  className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Limpiar búsqueda
+                </button>
+              )}
             </div>
           ) : (
             <table className="w-full">
@@ -170,7 +338,7 @@ export default function MembresiasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {membresias.map((membresia) => (
+                {membresiasFiltradas.map((membresia) => (
                   <tr key={membresia.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -185,13 +353,24 @@ export default function MembresiasPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4" />
-                        <div>
-                          <div>{formatearFecha(membresia.fechaInicio)}</div>
-                          <div className="text-xs text-gray-500">a {formatearFecha(membresia.fechaFin)}</div>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <div>
+                            <div>{formatearFecha(membresia.fechaInicio)}</div>
+                            <div className="text-xs text-gray-500">a {formatearFecha(membresia.fechaFin)}</div>
+                          </div>
                         </div>
+                        {(() => {
+                          const estado = obtenerEstadoVigenciaMembresia(membresia.fechaFin);
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${estado.color}`}>
+                              {estado.icon}
+                              <span className="ml-1">{estado.label}</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -242,6 +421,15 @@ export default function MembresiasPage() {
                           <Eye className="w-4 h-4 text-white" />
                         </Link>
 
+                        {/* Editar */}
+                        <Link
+                          href={`/dashboard/membresias/${membresia.id}/editar`}
+                          className="p-2 rounded-lg border-2 border-green-600 bg-green-600 hover:bg-green-700 hover:border-green-700 transition-colors"
+                          title="Editar membresía"
+                        >
+                          <Edit className="w-4 h-4 text-white" />
+                        </Link>
+
                         {/* Eliminar */}
                         <button
                           onClick={() => handleEliminar(membresia.id)}
@@ -261,10 +449,11 @@ export default function MembresiasPage() {
         </div>
 
         {/* Pagination */}
-        {membresias.length > 0 && (
+        {membresiasFiltradas.length > 0 && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Mostrando {membresias.length} membresías
+              Mostrando {membresiasFiltradas.length} membresías
+              {searchTerm && ` de ${membresias.length} totales`}
             </p>
           </div>
         )}
