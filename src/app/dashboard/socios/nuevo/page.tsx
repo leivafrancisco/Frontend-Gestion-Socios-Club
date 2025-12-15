@@ -10,26 +10,53 @@ import Link from 'next/link';
 import { sociosService, CrearSocioDto } from '@/lib/api/socios';
 
 const socioSchema = z.object({
-  nombre: z
+  nombre: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim() : val),
+    z
+      .string()
+      .min(2, 'El nombre debe tener al menos 2 caracteres')
+      .max(50, 'El nombre no puede exceder 50 caracteres')
+      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, 'El nombre solo puede contener letras')
+      .refine((val) => val.length > 0, {
+        message: 'El nombre no puede estar vacío',
+      })
+  ),
+  apellido: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim() : val),
+    z
+      .string()
+      .min(2, 'El apellido debe tener al menos 2 caracteres')
+      .max(50, 'El apellido no puede exceder 50 caracteres')
+      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, 'El apellido solo puede contener letras')
+      .refine((val) => val.length > 0, {
+        message: 'El apellido no puede estar vacío',
+      })
+  ),
+  email: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim().toLowerCase() : val),
+    z
+      .string()
+      .email('Email inválido')
+      .max(100, 'El email no puede exceder 100 caracteres')
+      .refine((val) => val.length > 0, {
+        message: 'El email no puede estar vacío',
+      })
+  ),
+  dni: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim() : val),
+    z
+      .string()
+      .regex(/^\d{7,8}$/, 'El DNI debe tener 7 u 8 dígitos')
+      .refine((val) => val.length > 0, {
+        message: 'El DNI no puede estar vacío',
+      })
+  ),
+  fechaNacimiento: z
     .string()
-    .min(2, 'el campo nombre es requerido')
-    .max(50, 'El nombre no puede exceder 50 caracteres')
-    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, 'El nombre solo puede contener letras'),
-  apellido: z
-    .string()
-    .min(2, 'El apellido debe tener al menos 2 caracteres')
-    .max(50, 'El apellido no puede exceder 50 caracteres')
-    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/, 'El apellido solo puede contener letras'),
-  email: z
-    .string()
-    .email('Email inválido')
-    .max(100, 'El email no puede exceder 100 caracteres'),
-  dni: z
-    .string()
-    .min(1, 'El campo DNI es obligatorio')
-    .regex(/^\d{7,8}$/, 'El DNI debe tener 7 u 8 dígitos')
-    .max(8, 'El DNI no puede exceder 8 dígitos'),
-  fechaNacimiento: z.string().min(1, 'El campo fecha de nacimiento es obligatorio'),
+    .min(1, 'La fecha de nacimiento es requerida')
+    .refine((val) => val.trim().length > 0, {
+      message: 'La fecha de nacimiento no puede estar vacía',
+    }),
 });
 
 type SocioFormData = z.infer<typeof socioSchema>;
@@ -54,11 +81,12 @@ export default function NuevoSocioPage() {
     setSuccess(null);
 
     try {
+      // Zod ya aplicó transform (trim) a todos los campos
       const socioData: CrearSocioDto = {
-        nombre: data.nombre.trim(),
-        apellido: data.apellido.trim(),
-        email: data.email.trim().toLowerCase(),
-        dni: data.dni && data.dni.trim() !== '' ? data.dni.trim() : undefined,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        email: data.email,
+        dni: data.dni && data.dni !== '' ? data.dni : undefined,
         fechaNacimiento: data.fechaNacimiento || undefined,
       };
 

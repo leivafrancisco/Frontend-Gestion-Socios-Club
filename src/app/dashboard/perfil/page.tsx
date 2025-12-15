@@ -102,7 +102,9 @@ export default function PerfilPage() {
   const cargarPerfil = async () => {
     try {
       setIsLoading(true);
-      const usuario = authService.getUsuario();
+      
+      // Obtener datos actualizados del backend en lugar de solo localStorage
+      const usuario = await authService.obtenerUsuarioActual();
 
       if (usuario) {
         // Separar nombre completo en nombre y apellido

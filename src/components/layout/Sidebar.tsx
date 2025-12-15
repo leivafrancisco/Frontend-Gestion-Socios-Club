@@ -21,6 +21,8 @@ import {
   Dumbbell,
   ListChecks,
   UserCog,
+  Settings,
+  Database,
 } from 'lucide-react';
 import { authService } from '@/lib/api/auth';
 
@@ -157,6 +159,23 @@ const menuItems: MenuItem[] = [
     icon: <UserCog className="w-5 h-5" />,
     href: '/dashboard/usuarios',
     roles: ['superadmin'], // Solo superadmin puede gestionar usuarios
+  },
+  {
+    label: 'Configuración',
+    icon: <Settings className="w-5 h-5" />,
+    roles: ['superadmin'], // Solo superadmin puede acceder a configuración
+    children: [
+      {
+        label: 'Backup',
+        href: '/dashboard/configuracion/backup',
+        icon: <Database className="w-4 h-4" />,
+      },
+      {
+        label: 'Auditoría',
+        href: '/dashboard/configuracion/auditoria',
+        icon: <ClipboardList className="w-4 h-4" />,
+      },
+    ],
   },
 ];
 
