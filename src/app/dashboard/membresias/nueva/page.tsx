@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -30,12 +30,8 @@ const membresiaSchema = z.object({
   fechaInicio: z.string().min(1, 'Debe ingresar la fecha de inicio'),
   fechaFin: z.string().min(1, 'Debe ingresar la fecha de fin'),
   actividadesIds: z.array(z.number()).min(1, 'Debe seleccionar al menos una actividad'),
-  costoTotal: z.number().min(0.01, 'El monto total debe ser mayor a 0'),
-  // Campos de pago inicial
-  monto: z.number().min(0.01, 'El monto del pago debe ser mayor a cero'),
   idMetodoPago: z.number().min(1, 'Debe seleccionar un método de pago'),
 }).refine((data) => {
-  // Validar que la fecha de inicio no sea anterior a hoy
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   const fechaInicio = new Date(data.fechaInicio + 'T00:00:00');
@@ -44,19 +40,12 @@ const membresiaSchema = z.object({
   message: 'La fecha de inicio no puede ser anterior a la fecha actual',
   path: ['fechaInicio'],
 }).refine((data) => {
-  // Validar que la fecha de fin sea posterior a la fecha de inicio
   const fechaInicio = new Date(data.fechaInicio + 'T00:00:00');
   const fechaFin = new Date(data.fechaFin + 'T00:00:00');
   return fechaFin > fechaInicio;
 }, {
   message: 'La fecha de fin debe ser posterior a la fecha de inicio',
   path: ['fechaFin'],
-}).refine((data) => {
-  // Validar que el monto no sea mayor que el costo total
-  return data.monto <= data.costoTotal;
-}, {
-  message: 'El monto del pago no puede ser mayor al costo total de la membresía',
-  path: ['monto'],
 });
 
 type MembresiaFormData = z.infer<typeof membresiaSchema>;
@@ -84,19 +73,14 @@ export default function NuevaMembresiaPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
-    control,
   } = useForm<MembresiaFormData>({
     resolver: zodResolver(membresiaSchema),
     defaultValues: {
       fechaInicio: currentDate.toISOString().split('T')[0],
       fechaFin: '',
       actividadesIds: [],
-      costoTotal: undefined as any, // Start undefined to avoid validation errors
     },
   });
-
-  const idSocioWatch = watch('idSocio');
 
   useEffect(() => {
     cargarActividades();
@@ -132,37 +116,23 @@ export default function NuevaMembresiaPage() {
     try {
       setIsLoadingSocios(true);
       setError(null);
-      console.log('Buscando socios con criterio:', searchSocio);
       const data = await sociosService.obtenerTodos({ search: searchSocio, estaActivo: true });
-      console.log('Socios encontrados:', data);
       setSocios(data);
 
       if (data.length === 0) {
         setError('No se encontraron socios con ese criterio de búsqueda');
       }
     } catch (error: any) {
-      console.error('Error completo al buscar socios:', error);
-      console.error('Error response:', error.response);
-      console.error('Error message:', error.message);
-
       let errorMessage = 'Error al buscar socios. ';
-
       if (error.response) {
-        // El servidor respondió con un código de estado fuera del rango 2xx
         errorMessage += `Código de error: ${error.response.status}. `;
-        if (error.response.data?.message) {
-          errorMessage += error.response.data.message;
-        } else if (typeof error.response.data === 'string') {
-          errorMessage += error.response.data;
-        }
+        if (error.response.data?.message) errorMessage += error.response.data.message;
+        else if (typeof error.response.data === 'string') errorMessage += error.response.data;
       } else if (error.request) {
-        // La petición fue hecha pero no se recibió respuesta
-        errorMessage += 'No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose.';
+        errorMessage += 'No se pudo conectar con el servidor.';
       } else {
-        // Algo pasó al configurar la petición
         errorMessage += error.message;
       }
-
       setError(errorMessage);
     } finally {
       setIsLoadingSocios(false);
@@ -191,55 +161,26 @@ export default function NuevaMembresiaPage() {
 
     setSelectedActividades(newSelected);
     setValue('actividadesIds', newSelected);
-
-    // Calcular el precio sugerido basado en las actividades seleccionadas
-    const precioSugerido = newSelected.reduce((total, id) => {
-      const actividad = actividades.find(a => a.id === id);
-      return total + (actividad?.precio || 0);
-    }, 0);
-
-    // Actualizar automáticamente el campo costoTotal con el precio sugerido
-    setValue('costoTotal', precioSugerido, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true
-    });
-
-    // Actualizar automáticamente el monto del pago con el precio sugerido (pago completo por defecto)
-    setValue('monto', precioSugerido, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true
-    });
-
     setError(null);
   };
 
-  // Calcular precio mensual sugerido (suma de todas las actividades seleccionadas)
-  // Esto es solo informativo para ayudar al administrador
-  const precioMensualSugerido = selectedActividades.reduce((total, actividadId) => {
-    const actividad = actividades.find(a => a.id === actividadId);
+  // Monto total siempre igual a la suma de actividades seleccionadas
+  const montoTotal = selectedActividades.reduce((total, id) => {
+    const actividad = actividades.find(a => a.id === id);
     return total + (actividad?.precio || 0);
   }, 0);
 
   const onSubmit = async (data: MembresiaFormData) => {
-    console.log('=== INICIO onSubmit ===');
-    console.log('Data recibida del formulario:', data);
-
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // Obtener usuario autenticado
       const usuario = authService.getUsuario();
-      if (!usuario) {
-        throw new Error('No hay usuario autenticado');
-      }
+      if (!usuario) throw new Error('No hay usuario autenticado');
 
-      // Validar campos de pago
-      if (!data.monto || data.monto <= 0) {
-        setError('El monto del pago debe ser mayor a cero');
+      if (montoTotal <= 0) {
+        setError('Debe seleccionar al menos una actividad');
         setIsSubmitting(false);
         return;
       }
@@ -250,67 +191,38 @@ export default function NuevaMembresiaPage() {
         return;
       }
 
-      if (data.monto > data.costoTotal) {
-        setError('El monto del pago no puede ser mayor al costo total de la membresía');
-        setIsSubmitting(false);
-        return;
-      }
-
       const membresiaData: CrearMembresiaDto = {
         idSocio: data.idSocio,
         fechaInicio: data.fechaInicio,
         fechaFin: data.fechaFin,
         idsActividades: data.actividadesIds,
-        costoTotal: data.costoTotal,
-        // Campos de pago inicial
-        monto: data.monto,
+        costoTotal: montoTotal,
+        monto: montoTotal,
         idMetodoPago: data.idMetodoPago,
         idUsuarioProcesa: usuario.id,
       };
 
-      console.log('Data a enviar al backend:', membresiaData);
-      console.log('Data a enviar (JSON):', JSON.stringify(membresiaData, null, 2));
-
       await membresiasService.crear(membresiaData);
-
-      console.log('✅ Membresía creada exitosamente con pago inicial');
-      setSuccess('¡Membresía creada exitosamente con el pago inicial registrado!');
+      setSuccess('¡Membresía creada y pagada exitosamente!');
 
       setTimeout(() => {
         router.push('/dashboard/membresias');
       }, 1500);
     } catch (err: any) {
-      console.error('❌ ERROR al crear membresía:', err);
-      console.error('Error completo:', err);
-      console.error('Error response:', err.response);
-      console.error('Error response data:', err.response?.data);
-      console.error('Error response status:', err.response?.status);
-
-      // Manejar error con mensaje explícito del backend
       let errorMessage = 'Error al crear la membresía';
-
       if (err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          errorMessage = err.response.data;
-        } else if (err.response.data.message) {
-          errorMessage = err.response.data.message;
-        } else if (err.response.data.error) {
-          errorMessage = err.response.data.error;
-        } else {
-          errorMessage = JSON.stringify(err.response.data);
-        }
+        if (typeof err.response.data === 'string') errorMessage = err.response.data;
+        else if (err.response.data.message) errorMessage = err.response.data.message;
+        else if (err.response.data.error) errorMessage = err.response.data.error;
+        else errorMessage = JSON.stringify(err.response.data);
       } else if (err.message) {
         errorMessage = err.message;
       }
-
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
-      console.log('=== FIN onSubmit ===');
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -382,10 +294,7 @@ export default function NuevaMembresiaPage() {
                         value={searchSocio}
                         onChange={(e) => setSearchSocio(e.target.value)}
                         onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            buscarSocios();
-                          }
+                          if (e.key === 'Enter') { e.preventDefault(); buscarSocios(); }
                         }}
                         className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         placeholder="Ej: Juan Pérez, 12345678, SOC-0001..."
@@ -397,17 +306,10 @@ export default function NuevaMembresiaPage() {
                       disabled={isLoadingSocios}
                       className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     >
-                      {isLoadingSocios ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        </>
-                      ) : (
-                        'Buscar'
-                      )}
+                      {isLoadingSocios ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buscar'}
                     </button>
                   </div>
 
-                  {/* Lista de socios encontrados */}
                   {socios.length > 0 && (
                     <div className="mt-4 border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
                       {socios.map((socio) => (
@@ -599,168 +501,41 @@ export default function NuevaMembresiaPage() {
             </div>
           </div>
 
-          {/* Paso 4: Monto Total */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  4
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Costo Total de la Membresía</h2>
-                  <p className="text-sm text-gray-600">Ingresa el monto total que se cobrará por esta membresía</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {/* Información del precio sugerido */}
-              {selectedActividades.length > 0 && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-semibold mb-1">Precio mensual sugerido:</p>
-                      <p className="text-xl font-bold text-blue-900">
-                        ${precioMensualSugerido.toLocaleString('es-AR', { minimumFractionDigits: 2 })} / mes
-                      </p>
-                      <p className="text-xs text-blue-700 mt-1">
-                        Basado en las {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad seleccionada' : 'actividades seleccionadas'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Campo de monto total */}
-              <div>
-                <label htmlFor="costoTotal" className="block text-sm font-medium text-gray-700 mb-2">
-                  <DollarSign className="w-4 h-4 inline mr-2" />
-                  Monto Total a Cobrar *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg font-semibold">
-                    $
-                  </span>
-                  <Controller
-                    name="costoTotal"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        type="number"
-                        id="costoTotal"
-                        step="0.01"
-                        min="0.01"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === '' || value === null) {
-                            field.onChange(undefined);
-                            return;
-                          }
-                          const numValue = parseFloat(value);
-                          field.onChange(isNaN(numValue) ? undefined : numValue);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value !== undefined && field.value !== null ? field.value : ''}
-                        name={field.name}
-                        ref={field.ref}
-                        className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
-                        placeholder="0.00"
-                      />
-                    )}
-                  />
-                </div>
-                {errors.costoTotal && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.costoTotal.message}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-gray-500">
-                  Este es el monto total que el socio deberá pagar por toda la membresía.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Paso 5: Datos del Pago Inicial */}
+          {/* Paso 4: Pago */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 border-b border-green-600">
               <div className="flex items-center gap-3">
                 <div className="bg-white text-green-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                  5
+                  4
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Pago Inicial</h2>
-                  <p className="text-sm text-green-50">Registra el pago inicial para activar la membresía</p>
+                  <h2 className="text-lg font-semibold text-white">Pago de la Membresía</h2>
+                  <p className="text-sm text-green-50">Selecciona el método de pago</p>
                 </div>
               </div>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Alerta informativa */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-800">
-                    <p className="font-semibold mb-1">La membresía se creará con estado "Activa"</p>
-                    <p>
-                      Al crear la membresía, se registrará automáticamente el pago inicial. Puedes ingresar el monto completo o un pago parcial (seña/adelanto).
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Campo Monto del Pago */}
+              {/* Monto a pagar (solo lectura) */}
               <div>
-                <label htmlFor="monto" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   <DollarSign className="w-4 h-4 inline mr-2" />
-                  Monto del Pago Inicial *
+                  Monto a Pagar
                 </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg font-semibold">
-                    $
-                  </span>
-                  <Controller
-                    name="monto"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        type="number"
-                        id="monto"
-                        step="0.01"
-                        min="0.01"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === '' || value === null) {
-                            field.onChange(undefined);
-                            return;
-                          }
-                          const numValue = parseFloat(value);
-                          field.onChange(isNaN(numValue) ? undefined : numValue);
-                        }}
-                        onBlur={field.onBlur}
-                        value={field.value !== undefined && field.value !== null ? field.value : ''}
-                        name={field.name}
-                        ref={field.ref}
-                        className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-semibold"
-                        placeholder="0.00"
-                      />
-                    )}
-                  />
+                <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-lg font-bold text-green-700">
+                  {selectedActividades.length > 0
+                    ? `$${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
+                    : <span className="text-gray-400 font-normal">Seleccioná actividades para ver el monto</span>
+                  }
                 </div>
-                {errors.monto && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.monto.message}
+                {selectedActividades.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Total de {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'} seleccionadas
                   </p>
                 )}
-                <p className="mt-2 text-xs text-gray-500">
-                  Puede ser igual o menor al costo total. Si es menor, el saldo pendiente podrá pagarse después.
-                </p>
               </div>
 
-              {/* Campo Método de Pago */}
+              {/* Método de Pago */}
               <div>
                 <label htmlFor="idMetodoPago" className="block text-sm font-medium text-gray-700 mb-2">
                   <CreditCard className="w-4 h-4 inline mr-2" />
@@ -786,35 +561,21 @@ export default function NuevaMembresiaPage() {
                 )}
               </div>
 
-              {/* Resumen del pago */}
-              {watch('costoTotal') && watch('monto') && watch('monto') <= watch('costoTotal') && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Resumen del Pago</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Costo Total:</span>
-                      <span className="font-semibold text-gray-900">
-                        ${watch('costoTotal').toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                      </span>
+              {/* Resumen */}
+              {selectedActividades.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-green-800">
+                        Membresía totalmente paga al crear
+                      </p>
+                      <p className="text-sm text-green-700 mt-0.5">
+                        Se registrará un pago de{' '}
+                        <strong>${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>{' '}
+                        — saldo pendiente: $0,00
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Pago Inicial:</span>
-                      <span className="font-semibold text-green-600">
-                        ${watch('monto').toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-gray-300">
-                      <span className="text-gray-600">Saldo Pendiente:</span>
-                      <span className={`font-bold ${(watch('costoTotal') - watch('monto')) === 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                        ${(watch('costoTotal') - watch('monto')).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    {(watch('costoTotal') - watch('monto')) === 0 && (
-                      <div className="mt-2 flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span className="text-xs font-medium">Pago completo - Membresía totalmente paga</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -848,23 +609,6 @@ export default function NuevaMembresiaPage() {
             </button>
           </div>
         </form>
-
-        {/* Información adicional */}
-        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-green-800">
-              <p className="font-semibold mb-1">Información Importante:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>La membresía se creará con estado <strong>"Activa"</strong> inmediatamente</li>
-                <li>El pago inicial se registrará automáticamente al crear la membresía</li>
-                <li>Puedes registrar un pago completo o parcial (seña/adelanto)</li>
-                <li>Si hay saldo pendiente, podrás registrar pagos adicionales después</li>
-                <li>No se permite crear membresías con fechas que se solapen para el mismo socio</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
