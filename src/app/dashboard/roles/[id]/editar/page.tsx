@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { obtenerRolPorId, actualizarRol } from '@/lib/api/roles';
+import { rolesService } from '@/lib/api/roles';
 
 const rolSchema = z.object({
   nombre: z
@@ -42,7 +42,7 @@ export default function EditarRolPage() {
   const cargarRol = async () => {
     try {
       setLoading(true);
-      const rol = await obtenerRolPorId(Number(rolId));
+      const rol = await rolesService.obtenerPorId(Number(rolId));
       setValue('nombre', rol.nombre);
       setRolOriginal(rol.nombre);
     } catch (error) {
@@ -58,7 +58,7 @@ export default function EditarRolPage() {
       setGuardando(true);
       setError(null);
 
-      await actualizarRol(Number(rolId), data);
+      await rolesService.actualizar(Number(rolId), data);
 
       alert('Rol actualizado exitosamente');
       router.push('/dashboard/roles');
