@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Calendar,
   CreditCard,
-  Activity
+  Activity,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -34,41 +34,60 @@ export default function DashboardPage() {
   };
 
   const totalSocios = socios.length;
-  const sociosActivos = socios.filter(s => s.estaActivo).length;
-  const sociosInactivos = socios.filter(s => !s.estaActivo).length;
+  const sociosActivos = socios.filter((s) => s.estaActivo).length;
+  const sociosInactivos = socios.filter((s) => !s.estaActivo).length;
 
   const stats = [
     {
       label: 'Total Socios',
       value: totalSocios,
-      icon: <Users className="w-6 h-6" />,
-      color: 'blue',
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-600',
+      icon: <Users className="w-5 h-5" />,
+      accent: '#C9A84C',
     },
     {
       label: 'Socios Activos',
       value: sociosActivos,
-      icon: <CheckCircle className="w-6 h-6" />,
-      color: 'green',
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-600',
+      icon: <CheckCircle className="w-5 h-5" />,
+      accent: '#2DD4BF',
     },
     {
       label: 'Socios Inactivos',
       value: sociosInactivos,
-      icon: <XCircle className="w-6 h-6" />,
-      color: 'red',
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-600',
+      icon: <XCircle className="w-5 h-5" />,
+      accent: '#F87171',
     },
     {
       label: 'Crecimiento',
       value: '+12%',
-      icon: <TrendingUp className="w-6 h-6" />,
-      color: 'purple',
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
+      icon: <TrendingUp className="w-5 h-5" />,
+      accent: '#818CF8',
+    },
+  ];
+
+  const quickActions = [
+    {
+      href: '/dashboard/socios/nuevo',
+      icon: <Users className="w-4 h-4" />,
+      label: 'Nuevo Socio',
+      accent: '#C9A84C',
+    },
+    {
+      href: '/dashboard/pagos/nuevo',
+      icon: <CreditCard className="w-4 h-4" />,
+      label: 'Registrar Pago',
+      accent: '#2DD4BF',
+    },
+    {
+      href: '/dashboard/asistencias/marcar',
+      icon: <Calendar className="w-4 h-4" />,
+      label: 'Marcar Asistencia',
+      accent: '#818CF8',
+    },
+    {
+      href: '/dashboard/actividades/nueva',
+      icon: <Activity className="w-4 h-4" />,
+      label: 'Nueva Actividad',
+      accent: '#F97316',
     },
   ];
 
@@ -76,90 +95,183 @@ export default function DashboardPage() {
     <div>
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Bienvenido al panel de administracion del club</p>
+        <h1
+          className="font-display mb-1"
+          style={{ fontSize: '2rem', fontWeight: 600, color: '#EDE8DC', letterSpacing: '0.02em' }}
+        >
+          Dashboard
+        </h1>
+        <p className="text-sm" style={{ color: '#4A6A8A' }}>
+          Bienvenido al panel de administración del club
+        </p>
       </div>
 
-      {/* Stats Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="flex items-center justify-center py-24">
+          <div
+            className="w-10 h-10 rounded-full border-2 animate-spin"
+            style={{
+              borderColor: 'rgba(201,168,76,0.15)',
+              borderTopColor: '#C9A84C',
+            }}
+          />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* ── Stats Grid ──────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
+                className="rounded-xl p-5 relative overflow-hidden"
+                style={{
+                  background: '#0D1E35',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                }}
               >
-                <div className="flex items-center justify-between">
+                {/* Top accent line */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-px"
+                  style={{
+                    background: `linear-gradient(90deg, ${stat.accent}, transparent)`,
+                  }}
+                />
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                    <p className={`text-3xl font-bold mt-1 ${stat.textColor}`}>
+                    <p
+                      className="text-xs uppercase mb-3"
+                      style={{ color: '#4A6A8A', letterSpacing: '0.1em' }}
+                    >
+                      {stat.label}
+                    </p>
+                    <p
+                      className="font-display"
+                      style={{
+                        fontSize: '2.5rem',
+                        fontWeight: 600,
+                        color: stat.accent,
+                        lineHeight: 1,
+                      }}
+                    >
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`${stat.bgColor} p-3 rounded-xl`}>
-                    <div className={stat.textColor}>{stat.icon}</div>
+                  <div
+                    className="p-2.5 rounded-lg"
+                    style={{
+                      background: `${stat.accent}18`,
+                      color: stat.accent,
+                    }}
+                  >
+                    {stat.icon}
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rapidas</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <Link href="/dashboard/socios/nuevo" className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Nuevo Socio</span>
-                </Link>
-                <button className="flex items-center gap-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                  <CreditCard className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Registrar Pago</span>
-                </button>
-                <button className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                  <Calendar className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700">Marcar Asistencia</span>
-                </button>
-                <Link href="/dashboard/actividades/nueva" className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-                  <Activity className="w-5 h-5 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-700">Nueva Actividad</span>
-                </Link>
+          {/* ── Quick Actions + Recent Activity ─────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* Quick Actions */}
+            <div
+              className="rounded-xl p-6"
+              style={{
+                background: '#0D1E35',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <h2
+                className="font-display mb-5"
+                style={{ fontSize: '1.15rem', fontWeight: 500, color: '#EDE8DC' }}
+              >
+                Acciones Rápidas
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {quickActions.map((action) => (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className="flex items-center gap-2.5 p-3.5 rounded-lg transition-all duration-150"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.borderColor = `${action.accent}35`)
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.borderColor =
+                        'rgba(255,255,255,0.06)')
+                    }
+                  >
+                    <span style={{ color: action.accent }}>{action.icon}</span>
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: '#7A96B8' }}
+                    >
+                      {action.label}
+                    </span>
+                  </Link>
+                ))}
               </div>
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente</h2>
-              <div className="space-y-4">
+            <div
+              className="rounded-xl p-6"
+              style={{
+                background: '#0D1E35',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <h2
+                className="font-display mb-5"
+                style={{ fontSize: '1.15rem', fontWeight: 500, color: '#EDE8DC' }}
+              >
+                Últimos Socios
+              </h2>
+              <div className="space-y-2">
                 {socios.slice(0, 5).map((socio) => (
-                  <div key={socio.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
+                  <div
+                    key={socio.id}
+                    className="flex items-center gap-3 p-2.5 rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.02)' }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                      style={{
+                        background: 'rgba(201,168,76,0.12)',
+                        color: '#C9A84C',
+                      }}
+                    >
+                      {socio.nombre.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p
+                        className="text-sm font-medium truncate"
+                        style={{ color: '#B0C8E0' }}
+                      >
                         {socio.nombre} {socio.apellido}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        Socio #{socio.numeroSocio}
+                      <p className="text-xs truncate" style={{ color: '#2A4A6A' }}>
+                        #{socio.numeroSocio}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      socio.estaActivo
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0"
+                      style={
+                        socio.estaActivo
+                          ? { background: 'rgba(45,212,191,0.1)', color: '#2DD4BF' }
+                          : { background: 'rgba(248,113,113,0.1)', color: '#F87171' }
+                      }
+                    >
                       {socio.estaActivo ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
                 ))}
                 {socios.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
+                  <p className="text-sm text-center py-4" style={{ color: '#2A4A6A' }}>
                     No hay socios registrados
                   </p>
                 )}
@@ -167,72 +279,123 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Members Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Ultimos Socios Registrados</h2>
+          {/* ── Members Table ────────────────────────────────── */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: '#0D1E35',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <div
+              className="px-6 py-4"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <h2
+                className="font-display"
+                style={{ fontSize: '1.15rem', fontWeight: 500, color: '#EDE8DC' }}
+              >
+                Últimos Socios Registrados
+              </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Socio
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      DNI
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {['Socio', 'Email', 'DNI', 'Estado'].map((col) => (
+                      <th
+                        key={col}
+                        className="px-6 py-3 text-left text-xs font-medium uppercase"
+                        style={{ color: '#3A5A7A', letterSpacing: '0.1em' }}
+                      >
+                        {col}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {socios.slice(0, 10).map((socio) => (
-                    <tr key={socio.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                <tbody>
+                  {socios.slice(0, 10).map((socio, i) => (
+                    <tr
+                      key={socio.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                        background:
+                          i % 2 === 1
+                            ? 'rgba(255,255,255,0.01)'
+                            : 'transparent',
+                      }}
+                    >
+                      <td className="px-6 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
-                              {socio.nombre.charAt(0)}
-                            </span>
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                            style={{
+                              background: 'rgba(201,168,76,0.1)',
+                              color: '#C9A84C',
+                            }}
+                          >
+                            {socio.nombre.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p
+                              className="text-sm font-medium"
+                              style={{ color: '#B0C8E0' }}
+                            >
                               {socio.nombre} {socio.apellido}
                             </p>
-                            <p className="text-xs text-gray-500">#{socio.numeroSocio}</p>
+                            <p className="text-xs" style={{ color: '#2A4A6A' }}>
+                              #{socio.numeroSocio}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td
+                        className="px-6 py-3.5 whitespace-nowrap text-sm"
+                        style={{ color: '#4A6A8A' }}
+                      >
                         {socio.email}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {socio.dni || '-'}
+                      <td
+                        className="px-6 py-3.5 whitespace-nowrap text-sm"
+                        style={{ color: '#4A6A8A' }}
+                      >
+                        {socio.dni || '—'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {socio.estaActivo ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Activo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Inactivo
-                          </span>
-                        )}
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                          style={
+                            socio.estaActivo
+                              ? {
+                                  background: 'rgba(45,212,191,0.1)',
+                                  color: '#2DD4BF',
+                                }
+                              : {
+                                  background: 'rgba(248,113,113,0.1)',
+                                  color: '#F87171',
+                                }
+                          }
+                        >
+                          {socio.estaActivo ? (
+                            <>
+                              <CheckCircle className="w-3 h-3" /> Activo
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3 h-3" /> Inactivo
+                            </>
+                          )}
+                        </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {socios.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
+                <div
+                  className="text-center py-12 text-sm"
+                  style={{ color: '#2A4A6A' }}
+                >
                   No se encontraron socios
                 </div>
               )}

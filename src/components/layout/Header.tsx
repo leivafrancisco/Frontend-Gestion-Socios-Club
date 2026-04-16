@@ -23,7 +23,11 @@ interface HeaderProps {
   } | null;
 }
 
-export default function Header({ onToggleSidebar, sidebarCollapsed, usuario }: HeaderProps) {
+export default function Header({
+  onToggleSidebar,
+  sidebarCollapsed,
+  usuario,
+}: HeaderProps) {
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -33,64 +37,147 @@ export default function Header({ onToggleSidebar, sidebarCollapsed, usuario }: H
   };
 
   return (
-    <header className={`h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 fixed top-0 right-0 z-30 transition-all duration-300 ${sidebarCollapsed ? 'left-16' : 'left-64'}`}>
-      <div className="flex items-center gap-4">
+    <header
+      className={`h-16 flex items-center justify-between px-4 fixed top-0 right-0 z-30 transition-all duration-300 ${
+        sidebarCollapsed ? 'left-16' : 'left-64'
+      }`}
+      style={{
+        background: '#081320',
+        borderBottom: '1px solid rgba(201,168,76,0.12)',
+      }}
+    >
+      {/* Left */}
+      <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: '#4A6A8A' }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.color = '#C9A84C')
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.color = '#4A6A8A')
+          }
         >
-          <Menu className="w-5 h-5 text-gray-600" />
+          <Menu className="w-5 h-5" />
         </button>
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="hidden md:flex items-center">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+              style={{ color: '#2A4A6A' }}
+            />
             <input
               type="text"
               placeholder="Buscar..."
-              className="w-64 pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+              className="w-56 pl-9 pr-4 py-2 rounded-lg text-sm outline-none transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                color: '#EDE8DC',
+              }}
             />
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <Bell className="w-5 h-5 text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+      {/* Right */}
+      <div className="flex items-center gap-1">
+        {/* Notification bell */}
+        <button
+          className="relative p-2 rounded-lg transition-colors"
+          style={{ color: '#4A6A8A' }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.color = '#C9A84C')
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.color = '#4A6A8A')
+          }
+        >
+          <Bell className="w-5 h-5" />
+          <span
+            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+            style={{ background: '#C9A84C' }}
+          />
         </button>
 
-        {/* User Menu */}
+        {/* User menu */}
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition-colors ml-1"
+            style={{
+              background: showUserMenu
+                ? 'rgba(201,168,76,0.08)'
+                : 'transparent',
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background =
+                'rgba(201,168,76,0.06)')
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.background = showUserMenu
+                ? 'rgba(201,168,76,0.08)'
+                : 'transparent')
+            }
           >
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, #C9A84C, #8A6E2A)',
+                color: '#081320',
+              }}
+            >
+              <User className="w-3.5 h-3.5" />
             </div>
             <div className="hidden md:block text-left">
-              <p className="text-sm font-medium text-gray-700">
+              <p
+                className="text-xs font-medium leading-tight"
+                style={{ color: '#B0C8E0' }}
+              >
                 {usuario?.nombreCompleto || 'Usuario'}
               </p>
-              <p className="text-xs text-gray-500 capitalize">
+              <p
+                className="text-xs leading-tight capitalize"
+                style={{ color: '#3A5A7A' }}
+              >
                 {usuario?.rol || 'Sin rol'}
               </p>
             </div>
-            <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
+            <ChevronDown
+              className="w-3.5 h-3.5 hidden md:block"
+              style={{ color: '#3A5A7A' }}
+            />
           </button>
 
-          {/* Dropdown Menu */}
+          {/* Dropdown */}
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+            <div
+              className="absolute right-0 mt-1 w-44 rounded-xl py-1 z-50"
+              style={{
+                background: '#0D1E35',
+                border: '1px solid rgba(201,168,76,0.15)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              }}
+            >
               <button
                 onClick={() => {
                   setShowUserMenu(false);
                   router.push('/dashboard/perfil');
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                style={{ color: '#7A96B8' }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background =
+                    'rgba(255,255,255,0.04)';
+                  e.currentTarget.style.color = '#EDE8DC';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#7A96B8';
+                }}
               >
                 <User className="w-4 h-4" />
                 Mi Perfil
@@ -100,18 +187,39 @@ export default function Header({ onToggleSidebar, sidebarCollapsed, usuario }: H
                   setShowUserMenu(false);
                   router.push('/dashboard/configuracion');
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                style={{ color: '#7A96B8' }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background =
+                    'rgba(255,255,255,0.04)';
+                  e.currentTarget.style.color = '#EDE8DC';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#7A96B8';
+                }}
               >
                 <Settings className="w-4 h-4" />
-                Configuracion
+                Configuración
               </button>
-              <hr className="my-1 border-gray-200" />
+              <div
+                className="my-1"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+              />
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                style={{ color: '#F87171' }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background =
+                    'rgba(248,113,113,0.08)')
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = 'transparent')
+                }
               >
                 <LogOut className="w-4 h-4" />
-                Cerrar Sesion
+                Cerrar Sesión
               </button>
             </div>
           )}

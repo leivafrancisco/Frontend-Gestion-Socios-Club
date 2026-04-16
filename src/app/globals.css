@@ -3,37 +3,255 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 243, 244, 246;
+  /* Nautical Color System — Regatas Corrientes */
+  --navy-deepest: #050E1A;
+  --navy-deep: #081320;
+  --navy-card: #0D1E35;
+  --navy-hover: rgba(255, 255, 255, 0.04);
+  --navy-border: rgba(255, 255, 255, 0.06);
+
+  --gold-primary: #C9A84C;
+  --gold-light: #E8C874;
+  --gold-bg: rgba(201, 168, 76, 0.1);
+  --gold-border: rgba(201, 168, 76, 0.2);
+
+  --text-cream: #EDE8DC;
+  --text-silver: #B0C8E0;
+  --text-muted: #6A8CAA;
+  --text-dim: #3A5A7A;
+
+  --success: #2DD4BF;
+  --danger: #F87171;
+  --warning: #FBB24A;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background-color: rgb(var(--background-rgb));
+  color: var(--text-cream);
+  background-color: var(--navy-deep);
+  font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
 }
 
-/* Scrollbar Styles */
+h1, h2, h3,
+.font-display {
+  font-family: var(--font-display, 'Cormorant Garamond', Georgia, serif);
+}
+
+/* Dark Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--navy-deepest);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--gold-border);
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: rgba(201, 168, 76, 0.4);
 }
 
-/* Custom Utilities */
+/* ── Sidebar Navigation Items ─────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  color: var(--text-muted);
+  border-left: 2px solid transparent;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.nav-item:hover {
+  background: var(--navy-hover);
+  color: var(--text-silver);
+}
+.nav-item.active {
+  background: var(--gold-bg);
+  color: var(--gold-primary);
+  border-left-color: var(--gold-primary);
+}
+
+.nav-parent-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  color: var(--text-muted);
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-align: left;
+}
+.nav-parent-btn:hover {
+  background: var(--navy-hover);
+  color: var(--text-silver);
+}
+.nav-parent-btn.parent-active {
+  color: var(--text-silver);
+  border-left-color: var(--gold-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.nav-subitem:hover {
+  background: var(--navy-hover);
+  color: var(--text-muted);
+}
+.nav-subitem.active {
+  background: var(--gold-bg);
+  color: var(--gold-primary);
+}
+
+/* ── Login Form Input ─────────────────────────────────── */
+.nautical-input {
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  color: var(--text-cream);
+  border: none;
+  border-bottom: 1px solid var(--gold-border);
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-size: 0.875rem;
+  font-family: var(--font-body, system-ui, sans-serif);
+}
+.nautical-input::placeholder {
+  color: var(--text-dim);
+}
+.nautical-input:focus {
+  border-bottom-color: var(--gold-primary);
+}
+
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
+  .scrollbar-none {
+    scrollbar-width: none;
   }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ══ Dark Theme Global Overrides (scoped to dashboard main) ══════════
+   Converts legacy white/gray Tailwind classes to the nautical dark theme.
+   Scoped to <main> so the login page is unaffected.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Backgrounds ———————————————————————————————————————— */
+main .bg-white          { background-color: #0D1E35 !important; }
+main .bg-gray-50        { background-color: rgba(255,255,255,0.02) !important; }
+main .bg-gray-100       { background-color: rgba(255,255,255,0.04) !important; }
+main .bg-blue-50        { background-color: rgba(201,168,76,0.06) !important; }
+main .bg-blue-100       { background-color: rgba(201,168,76,0.12) !important; }
+main .bg-green-50       { background-color: rgba(45,212,191,0.06) !important; }
+main .bg-green-100      { background-color: rgba(45,212,191,0.12) !important; }
+main .bg-red-50         { background-color: rgba(248,113,113,0.06) !important; }
+main .bg-red-100        { background-color: rgba(248,113,113,0.12) !important; }
+main .bg-yellow-50      { background-color: rgba(251,178,74,0.06) !important; }
+main .bg-purple-100     { background-color: rgba(129,140,248,0.12) !important; }
+main .bg-orange-100     { background-color: rgba(249,115,22,0.12) !important; }
+
+/* — Text ——————————————————————————————————————————————— */
+main .text-gray-900     { color: #EDE8DC !important; }
+main .text-gray-800     { color: #D0E0F0 !important; }
+main .text-gray-700     { color: #B0C8E0 !important; }
+main .text-gray-600     { color: #7A96B8 !important; }
+main .text-gray-500     { color: #6A8CAA !important; }
+main .text-gray-400     { color: #4A6A8A !important; }
+main .text-blue-800     { color: #E8C874 !important; }
+main .text-blue-700     { color: #C9A84C !important; }
+main .text-blue-600     { color: #C9A84C !important; }
+main .text-green-800    { color: #2DD4BF !important; }
+main .text-green-700    { color: #2DD4BF !important; }
+main .text-green-600    { color: #2DD4BF !important; }
+main .text-red-800      { color: #F87171 !important; }
+main .text-red-700      { color: #F87171 !important; }
+main .text-red-600      { color: #F87171 !important; }
+
+/* — Borders ———————————————————————————————————————————— */
+main .border-gray-100   { border-color: rgba(255,255,255,0.05) !important; }
+main .border-gray-200   { border-color: rgba(255,255,255,0.08) !important; }
+main .border-gray-300   { border-color: rgba(255,255,255,0.12) !important; }
+main .border-blue-100   { border-color: rgba(201,168,76,0.1) !important; }
+main .border-blue-200   { border-color: rgba(201,168,76,0.2) !important; }
+main .border-blue-500   { border-color: #C9A84C !important; }
+main .border-green-200  { border-color: rgba(45,212,191,0.2) !important; }
+main .border-green-500  { border-color: #2DD4BF !important; }
+main .border-red-200    { border-color: rgba(248,113,113,0.2) !important; }
+main .border-red-500    { border-color: #F87171 !important; }
+
+/* — Hover states ——————————————————————————————————————— */
+main .hover\:bg-gray-50:hover   { background-color: rgba(255,255,255,0.04) !important; }
+main .hover\:bg-gray-100:hover  { background-color: rgba(255,255,255,0.06) !important; }
+main .hover\:bg-blue-50:hover   { background-color: rgba(201,168,76,0.08) !important; }
+main .hover\:bg-red-50:hover    { background-color: rgba(248,113,113,0.08) !important; }
+
+/* — Divide lines ——————————————————————————————————————— */
+main .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255,255,255,0.04);
+}
+main .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* — Form elements ————————————————————————————————————— */
+main input[type="text"],
+main input[type="email"],
+main input[type="password"],
+main input[type="date"],
+main input[type="number"],
+main input[type="tel"],
+main input[type="search"],
+main select,
+main textarea {
+  background-color: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: #EDE8DC !important;
+}
+
+main input::placeholder,
+main textarea::placeholder {
+  color: #3A5A7A !important;
+}
+
+main select option {
+  background-color: #0D1E35;
+  color: #EDE8DC;
+}
+
+/* Checkbox accent */
+main input[type="checkbox"] {
+  accent-color: #C9A84C;
+}
+
+/* focus rings */
+main input:focus,
+main select:focus,
+main textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(201,168,76,0.3) !important;
+  border-color: rgba(201,168,76,0.5) !important;
 }

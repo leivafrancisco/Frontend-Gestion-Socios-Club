@@ -28,14 +28,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: '#081320' }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-11 h-11 rounded-full border-2 animate-spin"
+            style={{
+              borderColor: 'rgba(201,168,76,0.15)',
+              borderTopColor: '#C9A84C',
+            }}
+          />
+          <p
+            className="text-xs uppercase tracking-widest"
+            style={{ color: '#3A5A7A', letterSpacing: '0.25em' }}
+          >
+            Cargando
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen" style={{ background: '#081320' }}>
       <Sidebar
         isCollapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
