@@ -255,7 +255,7 @@ export default function MembresiasPage() {
           <div>
             <p className="text-sm text-gray-500">Pagadas</p>
             <p className="text-xl font-bold text-green-600">
-              {membresiasFiltradas.filter((m) => m.saldo <= 0).length}
+              {membresiasFiltradas.filter((m) => m.estaPaga).length}
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function MembresiasPage() {
           <div>
             <p className="text-sm text-gray-500">Pendientes</p>
             <p className="text-xl font-bold text-red-600">
-              {membresiasFiltradas.filter((m) => m.saldo > 0).length}
+              {membresiasFiltradas.filter((m) => !m.estaPaga).length}
             </p>
           </div>
         </div>
@@ -275,9 +275,9 @@ export default function MembresiasPage() {
             <DollarSign className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Saldo Total</p>
+            <p className="text-sm text-gray-500">Total Recaudado</p>
             <p className="text-xl font-bold text-purple-600">
-              ${membresiasFiltradas.reduce((sum, m) => sum + m.saldo, 0).toFixed(2)}
+              ${membresiasFiltradas.reduce((sum, m) => sum + m.totalPagado, 0).toFixed(2)}
             </p>
           </div>
         </div>
@@ -325,9 +325,6 @@ export default function MembresiasPage() {
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Pagado
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Saldo
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Estado
@@ -388,17 +385,8 @@ export default function MembresiasPage() {
                         ${membresia.totalPagado.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span
-                        className={`text-sm font-medium ${
-                          membresia.saldo > 0 ? 'text-red-600' : 'text-green-600'
-                        }`}
-                      >
-                        ${membresia.saldo.toFixed(2)}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {membresia.saldo <= 0 ? (
+                      {membresia.estaPaga ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Pagada

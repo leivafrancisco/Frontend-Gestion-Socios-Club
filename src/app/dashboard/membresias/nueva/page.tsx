@@ -164,11 +164,21 @@ export default function NuevaMembresiaPage() {
     setError(null);
   };
 
-  // Monto total siempre igual a la suma de actividades seleccionadas
-  const montoTotal = selectedActividades.reduce((total, id) => {
+  // Calcular cantidad de meses entre fechaInicio y fechaFin
+  const calcularMeses = (inicio: string, fin: string): number => {
+    if (!inicio || !fin) return 1;
+    const d1 = new Date(inicio + 'T00:00:00');
+    const d2 = new Date(fin + 'T00:00:00');
+    const meses = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    return meses > 0 ? meses : 1;
+  };
+
+  const cantidadMeses = calcularMeses(fechaInicio, fechaFin);
+  const precioPorActividades = selectedActividades.reduce((total, id) => {
     const actividad = actividades.find(a => a.id === id);
     return total + (actividad?.precio || 0);
   }, 0);
+  const montoTotal = precioPorActividades * cantidadMeses;
 
   const onSubmit = async (data: MembresiaFormData) => {
     setIsSubmitting(true);
@@ -212,8 +222,8 @@ export default function NuevaMembresiaPage() {
       let errorMessage = 'Error al crear la membresía';
       if (err.response?.data) {
         if (typeof err.response.data === 'string') errorMessage = err.response.data;
-        else if (err.response.data.message) errorMessage = err.response.data.message;
         else if (err.response.data.error) errorMessage = err.response.data.error;
+        else if (err.response.data.message) errorMessage = err.response.data.message;
         else errorMessage = JSON.stringify(err.response.data);
       } else if (err.message) {
         errorMessage = err.message;
@@ -523,15 +533,22 @@ export default function NuevaMembresiaPage() {
                   Monto a Pagar
                 </label>
                 <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-lg font-bold text-green-700">
-                  {selectedActividades.length > 0
+                  {selectedActividades.length > 0 && fechaFin
                     ? `$${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
-                    : <span className="text-gray-400 font-normal">Seleccioná actividades para ver el monto</span>
+                    : <span className="text-gray-400 font-normal">Seleccioná actividades y fechas para ver el monto</span>
                   }
                 </div>
-                {selectedActividades.length > 0 && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Total de {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'} seleccionadas
-                  </p>
+                {selectedActividades.length > 0 && fechaFin && (
+                  <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                    <p>
+                      ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} /mes
+                      × {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'}
+                      = <strong className="text-gray-700">${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+                    </p>
+                    <p>
+                      {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'} seleccionadas
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -562,7 +579,7 @@ export default function NuevaMembresiaPage() {
               </div>
 
               {/* Resumen */}
-              {selectedActividades.length > 0 && (
+              {selectedActividades.length > 0 && fechaFin && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -571,9 +588,10 @@ export default function NuevaMembresiaPage() {
                         Membresía totalmente paga al crear
                       </p>
                       <p className="text-sm text-green-700 mt-0.5">
-                        Se registrará un pago de{' '}
-                        <strong>${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>{' '}
-                        — saldo pendiente: $0,00
+                        ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })}/mes
+                        × {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'} ={' '}
+                        <strong>${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+                        {' '}— saldo pendiente: $0,00
                       </p>
                     </div>
                   </div>

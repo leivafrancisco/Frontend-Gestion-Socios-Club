@@ -26,11 +26,12 @@ export interface CrearMembresiaDto {
   fechaInicio: string;
   fechaFin: string;
   idsActividades: number[];
+  costoTotal: number;
 
   // Campos del pago inicial (obligatorios)
-  monto: number; // Monto del pago inicial (debe ser > 0)
-  idMetodoPago: number; // ID del método de pago seleccionado
-  idUsuarioProcesa: number; // ID del usuario autenticado
+  monto: number;
+  idMetodoPago: number;
+  idUsuarioProcesa: number;
 }
 
 export interface ActualizarMembresiaDto {
