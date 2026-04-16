@@ -52,7 +52,7 @@ export default function AsignarActividadPage() {
   const cargarMembresias = async (socioId: number) => {
     try {
       setIsLoadingMembresias(true);
-      const data = await membresiasService.obtenerTodas(socioId);
+      const data = await membresiasService.obtenerTodas({ idSocio: socioId });
       setMembresias(data);
       setMembresiaSeleccionada(null);
     } catch (error) {
