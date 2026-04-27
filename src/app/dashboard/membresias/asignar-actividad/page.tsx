@@ -147,9 +147,9 @@ export default function AsignarActividadPage() {
     }
   };
 
-  const getMesNombre = (mes: number) => {
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return meses[mes - 1];
+  const formatFecha = (fecha: string) => {
+    const d = new Date(fecha);
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
   return (
@@ -260,7 +260,7 @@ export default function AsignarActividadPage() {
                     }`}
                   >
                     <p className="font-medium text-gray-900">
-                      {getMesNombre(membresia.periodoMes)} {membresia.periodoAnio}
+                      {formatFecha(membresia.fechaInicio)} — {formatFecha(membresia.fechaFin)}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {membresia.actividades.length} actividad(es)
