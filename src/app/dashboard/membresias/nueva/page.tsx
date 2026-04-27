@@ -173,12 +173,22 @@ export default function NuevaMembresiaPage() {
     return meses > 0 ? meses : 1;
   };
 
+  const [montoAPagar, setMontoAPagar] = useState<string>('');
+
   const cantidadMeses = calcularMeses(fechaInicio, fechaFin);
   const precioPorActividades = selectedActividades.reduce((total, id) => {
     const actividad = actividades.find(a => a.id === id);
     return total + (actividad?.precio || 0);
   }, 0);
   const montoTotal = precioPorActividades * cantidadMeses;
+
+  useEffect(() => {
+    if (montoTotal > 0) {
+      setMontoAPagar(montoTotal.toFixed(2));
+    } else {
+      setMontoAPagar('');
+    }
+  }, [montoTotal]);
 
   const onSubmit = async (data: MembresiaFormData) => {
     setIsSubmitting(true);
@@ -201,13 +211,20 @@ export default function NuevaMembresiaPage() {
         return;
       }
 
+      const montoIngresado = parseFloat(montoAPagar) || 0;
+      if (montoIngresado < 0) {
+        setError('El monto a pagar no puede ser negativo');
+        setIsSubmitting(false);
+        return;
+      }
+
       const membresiaData: CrearMembresiaDto = {
         idSocio: data.idSocio,
         fechaInicio: data.fechaInicio,
         fechaFin: data.fechaFin,
         idsActividades: data.actividadesIds,
         costoTotal: montoTotal,
-        monto: montoTotal,
+        monto: montoIngresado,
         idMetodoPago: data.idMetodoPago,
         idUsuarioProcesa: usuario.id,
       };
@@ -526,22 +543,26 @@ export default function NuevaMembresiaPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Monto a pagar (solo lectura) */}
+              {/* Monto a pagar (editable) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <DollarSign className="w-4 h-4 inline mr-2" />
                   Monto a Pagar
                 </label>
-                <div className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-lg font-bold text-green-700">
-                  {selectedActividades.length > 0 && fechaFin
-                    ? `$${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
-                    : <span className="text-gray-400 font-normal">Seleccioná actividades y fechas para ver el monto</span>
-                  }
-                </div>
+                <input
+                  type="number"
+                  value={montoAPagar}
+                  onChange={(e) => setMontoAPagar(e.target.value)}
+                  disabled={!(selectedActividades.length > 0 && fechaFin)}
+                  min="0"
+                  step="0.01"
+                  placeholder="Seleccioná actividades y fechas para ver el monto"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-bold text-green-700 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200"
+                />
                 {selectedActividades.length > 0 && fechaFin && (
                   <div className="mt-2 text-xs text-gray-500 space-y-0.5">
                     <p>
-                      ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} /mes
+                      Total: ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} /mes
                       × {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'}
                       = <strong className="text-gray-700">${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
                     </p>
@@ -579,24 +600,33 @@ export default function NuevaMembresiaPage() {
               </div>
 
               {/* Resumen */}
-              {selectedActividades.length > 0 && fechaFin && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-green-800">
-                        Membresía totalmente paga al crear
-                      </p>
-                      <p className="text-sm text-green-700 mt-0.5">
-                        ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })}/mes
-                        × {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'} ={' '}
-                        <strong>${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
-                        {' '}— saldo pendiente: $0,00
-                      </p>
+              {selectedActividades.length > 0 && fechaFin && (() => {
+                const montoIngresado = parseFloat(montoAPagar) || 0;
+                const saldoPendiente = montoTotal - montoIngresado;
+                const esPagoParcial = saldoPendiente > 0.001;
+                return (
+                  <div className={`border rounded-lg p-4 ${esPagoParcial ? 'bg-yellow-50 border-yellow-300' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex items-center gap-3">
+                      {esPagoParcial
+                        ? <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                        : <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      }
+                      <div>
+                        <p className={`font-semibold ${esPagoParcial ? 'text-yellow-800' : 'text-green-800'}`}>
+                          {esPagoParcial ? 'Pago parcial — socio moroso' : 'Membresía totalmente paga al crear'}
+                        </p>
+                        <p className={`text-sm mt-0.5 ${esPagoParcial ? 'text-yellow-700' : 'text-green-700'}`}>
+                          Pagado: <strong>${montoIngresado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+                          {' '}— Saldo pendiente:{' '}
+                          <strong className={esPagoParcial ? 'text-red-600' : ''}>
+                            ${Math.max(0, saldoPendiente).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                          </strong>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 
