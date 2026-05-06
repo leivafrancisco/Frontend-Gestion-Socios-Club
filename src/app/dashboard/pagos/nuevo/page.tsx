@@ -178,14 +178,14 @@ export default function NuevoPagoPage() {
 
       console.log('Pago registrado:', pagoRegistrado);
 
-      if (!pagoRegistrado?.id) {
+      if (!pagoRegistrado?.idPago) {
         throw new Error('El servidor no devolvió un ID de pago válido');
       }
 
       setSuccess('¡Pago registrado exitosamente!');
 
       setTimeout(() => {
-        router.push(`/dashboard/pagos/${pagoRegistrado.id}/comprobante`);
+        router.push(`/dashboard/pagos/${pagoRegistrado.idPago}/comprobante`);
       }, 1500);
     } catch (error: any) {
       console.error('Error al registrar pago:', error);

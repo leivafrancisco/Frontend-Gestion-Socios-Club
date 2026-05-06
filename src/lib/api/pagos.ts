@@ -92,7 +92,7 @@ class PagosService {
     return response.data;
   }
 
-  async registrar(pago: RegistrarPagoDto): Promise<Pago> {
+  async registrar(pago: RegistrarPagoDto): Promise<ComprobantePago> {
     const response = await apiClient.post('/pagos', pago);
     return response.data;
   }
