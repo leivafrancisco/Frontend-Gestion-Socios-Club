@@ -174,6 +174,7 @@ export default function NuevaMembresiaPage() {
   };
 
   const [montoAPagar, setMontoAPagar] = useState<string>('');
+  const [montoModificado, setMontoModificado] = useState(false);
 
   const cantidadMeses = calcularMeses(fechaInicio, fechaFin);
   const precioPorActividades = selectedActividades.reduce((total, id) => {
@@ -183,12 +184,18 @@ export default function NuevaMembresiaPage() {
   const montoTotal = precioPorActividades * cantidadMeses;
 
   useEffect(() => {
-    if (montoTotal > 0) {
-      setMontoAPagar(montoTotal.toFixed(2));
-    } else {
-      setMontoAPagar('');
+    setMontoModificado(false);
+  }, [selectedActividades, fechaInicio, fechaFin]);
+
+  useEffect(() => {
+    if (!montoModificado) {
+      if (montoTotal > 0) {
+        setMontoAPagar(montoTotal.toFixed(2));
+      } else {
+        setMontoAPagar('');
+      }
     }
-  }, [montoTotal]);
+  }, [montoTotal, montoModificado]);
 
   const onSubmit = async (data: MembresiaFormData) => {
     setIsSubmitting(true);
@@ -552,7 +559,7 @@ export default function NuevaMembresiaPage() {
                 <input
                   type="number"
                   value={montoAPagar}
-                  onChange={(e) => setMontoAPagar(e.target.value)}
+                  onChange={(e) => { setMontoAPagar(e.target.value); setMontoModificado(true); }}
                   disabled={!(selectedActividades.length > 0 && fechaFin)}
                   min="0"
                   step="0.01"
