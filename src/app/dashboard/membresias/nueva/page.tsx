@@ -28,8 +28,11 @@ const membresiaSchema = z.object({
   idSocio: z.number().min(1, 'Debe seleccionar un socio'),
   fechaInicio: z.string().min(1, 'Debe ingresar la fecha de inicio'),
   fechaFin: z.string().min(1, 'Debe ingresar la fecha de fin'),
-  actividadesIds: z.array(z.number()).min(1, 'Debe seleccionar al menos una actividad'),
-  idMetodoPago: z.number().min(1, 'Debe seleccionar un método de pago'),
+  actividadesIds: z.array(z.number()).min(1, 'No puedes crear una membresía sin asignar actividades'),
+  idMetodoPago: z.preprocess(
+    (val) => { const n = Number(val); return isNaN(n) ? 0 : n; },
+    z.number().min(1, 'Debes asignar un método de pago')
+  ),
 }).refine((data) => {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -205,13 +208,13 @@ export default function NuevaMembresiaPage() {
       if (!usuario) throw new Error('No hay usuario autenticado');
 
       if (montoTotal <= 0) {
-        setError('Debe seleccionar al menos una actividad');
+        setError('No puedes crear una membresía sin asignar actividades');
         setIsSubmitting(false);
         return;
       }
 
       if (!data.idMetodoPago) {
-        setError('Debe seleccionar un método de pago');
+        setError('Debes asignar un método de pago');
         setIsSubmitting(false);
         return;
       }
@@ -655,7 +658,7 @@ export default function NuevaMembresiaPage() {
             </Link>
             <button
               type="submit"
-              disabled={isSubmitting || !socioSeleccionado || selectedActividades.length === 0}
+              disabled={isSubmitting || !socioSeleccionado}
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md"
             >
               {isSubmitting ? (
