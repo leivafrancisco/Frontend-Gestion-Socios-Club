@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -51,7 +50,6 @@ const membresiaSchema = z.object({
 type MembresiaFormData = z.infer<typeof membresiaSchema>;
 
 export default function NuevaMembresiaPage() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -237,11 +235,21 @@ export default function NuevaMembresiaPage() {
       };
 
       await membresiasService.crear(membresiaData);
-      setSuccess('¡Membresía creada y pagada exitosamente!');
+      setSuccess('¡Membresía creada exitosamente!');
 
-      setTimeout(() => {
-        router.push('/dashboard/membresias');
-      }, 1500);
+      // Resetear formulario para permitir crear otra membresía
+      setSocioSeleccionado(null);
+      setValue('idSocio', 0);
+      setSearchSocio('');
+      setSocios([]);
+      setSelectedActividades([]);
+      setValue('actividadesIds', []);
+      setFechaInicio(new Date().toISOString().split('T')[0]);
+      setFechaFin('');
+      setValue('fechaInicio', new Date().toISOString().split('T')[0]);
+      setValue('fechaFin', '');
+      setMontoAPagar('');
+      setMontoModificado(false);
     } catch (err: any) {
       let errorMessage = 'Error al crear la membresía';
       if (err.response?.data) {

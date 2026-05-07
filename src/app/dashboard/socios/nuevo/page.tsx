@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -62,7 +61,6 @@ const socioSchema = z.object({
 type SocioFormData = z.infer<typeof socioSchema>;
 
 export default function NuevoSocioPage() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -70,6 +68,7 @@ export default function NuevoSocioPage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<SocioFormData>({
     resolver: zodResolver(socioSchema),
@@ -93,11 +92,7 @@ export default function NuevoSocioPage() {
       console.log('Datos a enviar:', socioData);
       const nuevoSocio = await sociosService.crear(socioData);
       setSuccess(`Socio ${nuevoSocio.nombre} ${nuevoSocio.apellido} creado exitosamente con número ${nuevoSocio.numeroSocio}`);
-
-      // Redirigir después de 2 segundos
-      setTimeout(() => {
-        router.push('/dashboard/socios');
-      }, 2000);
+      reset();
     } catch (err: any) {
       console.error('Error completo:', err);
       console.error('Error response:', err.response);

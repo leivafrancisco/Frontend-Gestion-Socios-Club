@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -55,7 +54,6 @@ const usuarioSchema = z.object({
 type UsuarioFormData = z.infer<typeof usuarioSchema>;
 
 export default function NuevoUsuarioPage() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -64,6 +62,7 @@ export default function NuevoUsuarioPage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<UsuarioFormData>({
     resolver: zodResolver(usuarioSchema),
@@ -88,10 +87,7 @@ export default function NuevoUsuarioPage() {
 
       await usuariosService.crear(usuarioData);
       setSuccess(`Usuario ${data.nombreUsuario} creado exitosamente`);
-
-      setTimeout(() => {
-        router.push('/dashboard/usuarios');
-      }, 2000);
+      reset();
     } catch (err: any) {
       console.error('Error completo:', err);
       const errorMessage =
