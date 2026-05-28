@@ -96,7 +96,7 @@ export default function LoginPage() {
               }}
             >
               <Image
-                src="/assets/images/regatas.jpg"
+                src="/assets/images/logo-matienzo.png"
                 alt="Regatas Corrientes"
                 fill
                 className="object-cover"
@@ -175,7 +175,7 @@ export default function LoginPage() {
               style={{ border: '2px solid rgba(201,168,76,0.5)' }}
             >
               <Image
-                src="/assets/images/regatas.jpg"
+                src="/assets/images/logo-matienzo.png"
                 alt="Regatas Corrientes"
                 fill
                 className="object-cover"

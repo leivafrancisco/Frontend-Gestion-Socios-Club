@@ -249,7 +249,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           }}
         >
           <Image
-            src="/assets/images/regatas.jpg"
+            src="/assets/images/logo-matienzo.png"
             alt="RC"
             fill
             className="object-cover"
