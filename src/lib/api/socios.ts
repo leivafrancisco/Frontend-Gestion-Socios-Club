@@ -36,6 +36,24 @@ export interface FiltrosSocios {
   pageSize?: number;
 }
 
+// Resultado de sp_ResumenSocio
+export interface ResumenSocio {
+  idSocio: number;
+  nombreCompleto: string;
+  numeroSocio: string;
+  email: string;
+  dni?: string;
+  estaActivo: boolean;
+  fechaAlta: string;
+  fechaBaja?: string;
+  totalMembresias: number;
+  totalCargado: number;
+  totalPagado: number;
+  saldoPendiente: number;
+  ultimaFechaPago?: string;
+  asistenciasEsteMes: number;
+}
+
 export const sociosService = {
   async obtenerTodos(filtros: FiltrosSocios = {}): Promise<Socio[]> {
     const params = new URLSearchParams();
@@ -71,6 +89,22 @@ export const sociosService = {
 
   async desactivar(id: number): Promise<void> {
     await apiClient.put(`/socios/${id}/desactivar`);
+  },
+
+  async activar(id: number): Promise<void> {
+    await apiClient.put(`/socios/${id}/activar`);
+  },
+
+  // Llama a sp_CambiarEstadoSocio en la base de datos
+  async cambiarEstado(id: number, estaActivo: boolean): Promise<Socio> {
+    const response = await apiClient.put<Socio>(`/socios/${id}/estado`, { estaActivo });
+    return response.data;
+  },
+
+  // Llama a sp_ResumenSocio en la base de datos
+  async obtenerResumen(id: number): Promise<ResumenSocio> {
+    const response = await apiClient.get<ResumenSocio>(`/socios/${id}/resumen`);
+    return response.data;
   },
 
   async obtenerTotal(): Promise<number> {

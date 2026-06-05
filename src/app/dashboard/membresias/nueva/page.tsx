@@ -23,6 +23,7 @@ import { sociosService, type Socio } from '@/lib/api/socios';
 import { actividadesService, type Actividad } from '@/lib/api/actividades';
 import { pagosService, type MetodoPago } from '@/lib/api/pagos';
 import { authService } from '@/lib/api/auth';
+import { getPagoStrategy } from '@/lib/pagos/PagoStrategyFactory';
 
 const membresiaSchema = z.object({
   idSocio: z.number().min(1, 'Debe seleccionar un socio'),
@@ -64,6 +65,7 @@ export default function NuevaMembresiaPage() {
   const [socioSeleccionado, setSocioSeleccionado] = useState<Socio | null>(null);
   const [isLoadingSocios, setIsLoadingSocios] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
+  const [metodoPagoNombre, setMetodoPagoNombre] = useState<string>('');
 
   const currentDate = new Date();
   const [fechaInicio, setFechaInicio] = useState(currentDate.toISOString().split('T')[0]);
@@ -599,7 +601,13 @@ export default function NuevaMembresiaPage() {
                 </label>
                 <select
                   id="idMetodoPago"
-                  {...register('idMetodoPago', { valueAsNumber: true })}
+                  {...register('idMetodoPago', {
+                    valueAsNumber: true,
+                    onChange: (e) => {
+                      const seleccionado = metodosPago.find(m => m.id === Number(e.target.value));
+                      setMetodoPagoNombre(seleccionado?.nombre ?? '');
+                    },
+                  })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Seleccione un método de pago</option>
@@ -614,6 +622,11 @@ export default function NuevaMembresiaPage() {
                     <AlertCircle className="w-4 h-4" />
                     {errors.idMetodoPago.message}
                   </p>
+                )}
+                {metodoPagoNombre && (
+                  <div className="mt-3">
+                    {getPagoStrategy(metodoPagoNombre).renderUI(parseFloat(montoAPagar) || 0)}
+                  </div>
                 )}
               </div>
 

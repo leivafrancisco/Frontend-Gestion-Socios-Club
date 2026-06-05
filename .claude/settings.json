@@ -1,4 +1,15 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/franciscoleiva/GitHub/Frontend-Gestion-Socios-Club/src/app/dashboard/socios/\\\\[id\\\\])",
+      "Bash(dotnet build *)",
+      "Bash(xargs cat)"
+    ],
+    "additionalDirectories": [
+      "/Users/franciscoleiva/GitHub/SistemaDeGestionDeClub",
+      "/Users/franciscoleiva/GitHub/Frontend-Gestion-Socios-Club/src/app/dashboard/socios/[id]"
+    ]
+  },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "vercel@claude-plugins-official": true
