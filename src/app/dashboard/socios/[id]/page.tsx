@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { sociosService, type ResumenSocio } from '@/lib/api/socios';
 import { authService } from '@/lib/api/auth';
+import { cuotasService, type CuotaDto } from '@/lib/api/cuotas';
+import TablaCuotas from '@/components/cuotas/TablaCuotas';
 
 export default function DetalleSocioPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,10 +22,25 @@ export default function DetalleSocioPage() {
   const [isToggling, setIsToggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [cuotas, setCuotas] = useState<CuotaDto[]>([]);
+  const [loadingCuotas, setLoadingCuotas] = useState(false);
 
   useEffect(() => {
     cargarResumen();
+    cargarCuotas();
   }, [idSocio]);
+
+  const cargarCuotas = async () => {
+    try {
+      setLoadingCuotas(true);
+      const data = await cuotasService.obtenerPorSocio(idSocio);
+      setCuotas(data);
+    } catch (err) {
+      console.error('Error al cargar cuotas:', err);
+    } finally {
+      setLoadingCuotas(false);
+    }
+  };
 
   const cargarResumen = async () => {
     try {
@@ -250,6 +267,9 @@ export default function DetalleSocioPage() {
           </div>
         )}
       </div>
+
+      {/* Historial de Cuotas */}
+      <TablaCuotas cuotas={cuotas} loading={loadingCuotas} />
 
       {/* Acciones rápidas */}
       <div className="flex flex-wrap gap-3">

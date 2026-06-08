@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { membresiasService, type Membresia } from '@/lib/api/membresias';
+import { cuotasService, type CuotaDto } from '@/lib/api/cuotas';
+import TablaCuotas from '@/components/cuotas/TablaCuotas';
 import {
   ArrowLeft,
   Calendar,
@@ -25,10 +27,13 @@ export default function DetalleMembresiaPage() {
   const [membresia, setMembresia] = useState<Membresia | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cuotas, setCuotas] = useState<CuotaDto[]>([]);
+  const [loadingCuotas, setLoadingCuotas] = useState(false);
 
   useEffect(() => {
     if (id) {
       cargarMembresia();
+      cargarCuotas();
     }
   }, [id]);
 
@@ -43,6 +48,32 @@ export default function DetalleMembresiaPage() {
       setError(error.response?.data?.message || 'Error al cargar los detalles de la membresía');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const cargarCuotas = async () => {
+    try {
+      setLoadingCuotas(true);
+      const data = await cuotasService.obtenerPorMembresia(parseInt(id));
+      setCuotas(data);
+    } catch (error) {
+      console.error('Error al cargar cuotas:', error);
+    } finally {
+      setLoadingCuotas(false);
+    }
+  };
+
+  const handleGenerarCuotas = async () => {
+    try {
+      setLoadingCuotas(true);
+      setError(null);
+      await cuotasService.generarCuotas(parseInt(id));
+      await Promise.all([cargarMembresia(), cargarCuotas()]);
+    } catch (error: any) {
+      console.error('Error al generar cuotas:', error);
+      setError(error.response?.data?.message || 'Error al generar las cuotas de la membresía');
+    } finally {
+      setLoadingCuotas(false);
     }
   };
 
@@ -214,7 +245,7 @@ export default function DetalleMembresiaPage() {
         </div>
 
         {/* Información Financiera */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
           <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
             <div className="flex items-center gap-3">
               <CreditCard className="w-5 h-5 text-blue-600" />
@@ -243,9 +274,26 @@ export default function DetalleMembresiaPage() {
                 </p>
               </div>
 
+              <div className={`p-4 rounded-lg border ${membresia.saldo <= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className={`w-4 h-4 ${membresia.saldo <= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                  <p className={`text-sm ${membresia.saldo <= 0 ? 'text-green-700' : 'text-red-700'}`}>Saldo Pendiente</p>
+                </div>
+                <p className={`text-2xl font-bold ${membresia.saldo <= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  ${membresia.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Plan de Cuotas */}
+        <TablaCuotas
+          cuotas={cuotas}
+          mostrarBotonGenerar={true}
+          onGenerarCuotas={handleGenerarCuotas}
+          loading={loadingCuotas}
+        />
       </div>
     </div>
   );

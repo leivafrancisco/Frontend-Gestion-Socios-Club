@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { pagosService, type MetodoPago } from '@/lib/api/pagos';
 import { sociosService, type Socio } from '@/lib/api/socios';
 import { membresiasService, type Membresia } from '@/lib/api/membresias';
+import { cuotasService, type CuotaDto } from '@/lib/api/cuotas';
 import { getPagoStrategy } from '@/lib/pagos/PagoStrategyFactory';
 import {
   ArrowLeft,
@@ -35,6 +36,7 @@ const registrarPagoSchema = z.object({
   }).min(1, 'Debes seleccionar el método de pago correspondiente'),
   monto: z.number({ required_error: 'Ingresa el monto' }).positive('El monto debe ser mayor a 0'),
   fechaPago: z.string().min(1, 'Debe ingresar la fecha de pago'),
+  idCuota: z.number().optional(),
 }).refine((data) => {
   // Validar que la fecha de pago no sea anterior a la fecha actual
   const hoy = new Date();
@@ -64,6 +66,10 @@ export default function NuevoPagoPage() {
   const [isLoadingSocios, setIsLoadingSocios] = useState(false);
   const [metodoPagoNombre, setMetodoPagoNombre] = useState('');
 
+  const [cuotas, setCuotas] = useState<CuotaDto[]>([]);
+  const [cuotaSeleccionada, setCuotaSeleccionada] = useState<CuotaDto | null>(null);
+  const [loadingCuotas, setLoadingCuotas] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -74,6 +80,7 @@ export default function NuevoPagoPage() {
     resolver: zodResolver(registrarPagoSchema),
     defaultValues: {
       fechaPago: new Date().toISOString().split('T')[0],
+      idCuota: undefined,
     },
   });
 
@@ -138,6 +145,9 @@ export default function NuevoPagoPage() {
     setMembresiasPendientes([]);
     setMembresiaSeleccionada(null);
     setValue('idMembresia', 0);
+    setValue('idCuota', undefined);
+    setCuotaSeleccionada(null);
+    setCuotas([]);
   };
 
   const cargarMembresiasImpagasSocio = async (idSocio: number) => {
@@ -158,11 +168,28 @@ export default function NuevoPagoPage() {
     }
   };
 
-  const seleccionarMembresia = (membresia: Membresia) => {
+  const cargarCuotasMembresia = async (idMembresia: number) => {
+    try {
+      setLoadingCuotas(true);
+      const data = await cuotasService.obtenerPorMembresia(idMembresia);
+      setCuotas(data);
+    } catch (error) {
+      console.error('Error al cargar cuotas:', error);
+      setError('Error al cargar las cuotas de la membresía');
+    } finally {
+      setLoadingCuotas(false);
+    }
+  };
+
+  const seleccionarMembresia = async (membresia: Membresia) => {
     setMembresiaSeleccionada(membresia);
     setValue('idMembresia', membresia.id);
+    setValue('idCuota', undefined);
+    setCuotaSeleccionada(null);
     setValue('monto', membresia.saldo);
     setError('');
+
+    await cargarCuotasMembresia(membresia.id);
   };
 
   const onSubmit = async (data: RegistrarPagoFormData) => {
@@ -173,6 +200,7 @@ export default function NuevoPagoPage() {
 
       const pagoRegistrado = await pagosService.registrar({
         idMembresia: data.idMembresia,
+        idCuota: data.idCuota || undefined,
         idMetodoPago: data.idMetodoPago,
         monto: data.monto,
         fechaPago: data.fechaPago,
@@ -449,6 +477,109 @@ export default function NuevoPagoPage() {
                       ))}
                     </div>
 
+                    {/* Selector de Cuotas */}
+                    {membresiaSeleccionada && (
+                      <>
+                        {loadingCuotas ? (
+                          <div className="flex items-center justify-center py-8 border-t border-gray-100 mt-6">
+                            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                            <span className="ml-2 text-sm text-gray-500 font-medium">Cargando cuotas de la membresía...</span>
+                          </div>
+                        ) : cuotas.length > 0 ? (
+                          <div className="mt-6 border-t border-gray-100 pt-6">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-blue-600" />
+                              Seleccionar Cuota a Abonar (Opcional)
+                            </h3>
+                            <p className="text-xs text-gray-500 mb-4">
+                              Selecciona una cuota para pagar su importe exacto, o elige "Abono Libre" para ingresar un monto personalizado.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                              {/* Opción de Abono Libre */}
+                              <div
+                                onClick={() => {
+                                  setCuotaSeleccionada(null);
+                                  setValue('idCuota', undefined);
+                                  setValue('monto', membresiaSeleccionada.saldo);
+                                }}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all flex flex-col justify-between ${
+                                  !cuotaSeleccionada
+                                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                    : 'border-gray-200 hover:border-blue-300'
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-bold text-sm text-gray-900">Abono Libre</span>
+                                    <span className={`w-2.5 h-2.5 rounded-full ${!cuotaSeleccionada ? 'bg-blue-600' : 'bg-transparent'}`}></span>
+                                  </div>
+                                  <p className="text-xs text-gray-500">Monto personalizado para el saldo pendiente.</p>
+                                </div>
+                                <div className="mt-4">
+                                  <span className="text-xs text-gray-500">Saldo Total:</span>
+                                  <p className="text-base font-extrabold text-blue-700">
+                                    ${membresiaSeleccionada.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Cuotas de la membresía */}
+                              {cuotas.map((cuota) => {
+                                const esPagada = cuota.estado.toLowerCase() === 'pagada';
+                                const esSeleccionada = cuotaSeleccionada?.id === cuota.id;
+                                
+                                return (
+                                  <div
+                                    key={cuota.id}
+                                    onClick={() => {
+                                      if (esPagada) return;
+                                      setCuotaSeleccionada(cuota);
+                                      setValue('idCuota', cuota.id);
+                                      setValue('monto', cuota.monto);
+                                    }}
+                                    className={`p-4 border-2 rounded-lg transition-all flex flex-col justify-between ${
+                                      esPagada
+                                        ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                                        : esSeleccionada
+                                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                        : 'border-gray-200 hover:border-blue-300 cursor-pointer'
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-sm text-gray-900">Cuota #{cuota.numeroCuota}</span>
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                          esPagada
+                                            ? 'bg-green-100 text-green-700 border-green-200'
+                                            : cuota.estado.toLowerCase() === 'vencida'
+                                            ? 'bg-red-100 text-red-700 border-red-200'
+                                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                        }`}>
+                                          {cuota.estado.toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-500">
+                                        Vence: {new Date(cuota.fechaVencimiento).toLocaleDateString('es-AR')}
+                                      </p>
+                                    </div>
+                                    <div className="mt-4">
+                                      <span className="text-xs text-gray-500">Monto:</span>
+                                      <p className={`text-base font-extrabold ${esPagada ? 'text-gray-500' : 'text-green-700'}`}>
+                                        ${cuota.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+
+                    <input type="hidden" {...register('idCuota', { valueAsNumber: true })} />
+
                     {errors.idMembresia && (
                       <p className="mt-3 text-sm text-red-600 flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -547,7 +678,7 @@ export default function NuevoPagoPage() {
                         type="number"
                         step="0.01"
                         min="0.01"
-                        max={membresiaSeleccionada.saldo}
+                        max={cuotaSeleccionada ? cuotaSeleccionada.monto : membresiaSeleccionada.saldo}
                         placeholder="0.00"
                         className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
                       />
@@ -560,34 +691,47 @@ export default function NuevoPagoPage() {
                     )}
 
                     {/* Botones de monto rápido */}
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setValue('monto', membresiaSeleccionada.saldo)}
-                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
-                      >
-                        Pago Total (${membresiaSeleccionada.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setValue('monto', membresiaSeleccionada.saldo / 2)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                      >
-                        Mitad (${(membresiaSeleccionada.saldo / 2).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                      </button>
-                    </div>
+                    {!cuotaSeleccionada && (
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setValue('monto', membresiaSeleccionada.saldo)}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                        >
+                          Pago Total (${membresiaSeleccionada.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setValue('monto', membresiaSeleccionada.saldo / 2)}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                        >
+                          Mitad (${(membresiaSeleccionada.saldo / 2).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                        </button>
+                      </div>
+                    )}
 
-                    {montoIngresado > 0 && montoIngresado <= membresiaSeleccionada.saldo && (
+                    {montoIngresado > 0 && montoIngresado <= (cuotaSeleccionada ? cuotaSeleccionada.monto : membresiaSeleccionada.saldo) && (
                       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-800">
-                          <strong>Saldo restante después del pago:</strong> $
-                          {(membresiaSeleccionada.saldo - montoIngresado).toLocaleString('es-AR', {
-                            minimumFractionDigits: 2,
-                          })}
+                          {cuotaSeleccionada ? (
+                            <>
+                              <strong>Monto restante de la cuota después del pago:</strong> ${" "}
+                              {(cuotaSeleccionada.monto - montoIngresado).toLocaleString('es-AR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </>
+                          ) : (
+                            <>
+                              <strong>Saldo restante después del pago:</strong> ${" "}
+                              {(membresiaSeleccionada.saldo - montoIngresado).toLocaleString('es-AR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </>
+                          )}
                         </p>
-                        {(membresiaSeleccionada.saldo - montoIngresado) === 0 && (
+                        {((cuotaSeleccionada ? cuotaSeleccionada.monto : membresiaSeleccionada.saldo) - montoIngresado) <= 0.001 && (
                           <p className="text-sm text-green-700 font-semibold mt-1">
-                            ✓ Esta membresía quedará completamente pagada
+                            ✓ {cuotaSeleccionada ? 'Esta cuota quedará completamente pagada' : 'Esta membresía quedará completamente pagada'}
                           </p>
                         )}
                       </div>

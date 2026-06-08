@@ -18,6 +18,7 @@ export interface Pago {
 
 export interface RegistrarPagoDto {
   idMembresia: number;
+  idCuota?: number;
   idMetodoPago: number;
   monto: number;
   fechaPago?: string;

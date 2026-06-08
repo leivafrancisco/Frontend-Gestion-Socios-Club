@@ -23,6 +23,7 @@ import {
   UserCog,
   Settings,
   Database,
+  AlertCircle,
 } from 'lucide-react';
 import { authService } from '@/lib/api/auth';
 
@@ -108,6 +109,23 @@ const menuItems: MenuItem[] = [
         href: '/dashboard/pagos/estadisticas',
         icon: <Activity className="w-4 h-4" />,
         roles: ['admin', 'superadmin'],
+      },
+    ],
+  },
+  {
+    label: 'Cuotas',
+    icon: <Receipt className="w-5 h-5" />,
+    roles: ['admin', 'superadmin'],
+    children: [
+      {
+        label: 'Control de Cuotas',
+        href: '/dashboard/cuotas',
+        icon: <ClipboardList className="w-4 h-4" />,
+      },
+      {
+        label: 'Socios Morosos',
+        href: '/dashboard/cuotas/morosos',
+        icon: <AlertCircle className="w-4 h-4" />,
       },
     ],
   },

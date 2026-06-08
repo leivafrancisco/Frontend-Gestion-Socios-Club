@@ -18,6 +18,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { membresiasService, CrearMembresiaDto } from '@/lib/api/membresias';
 import { sociosService, type Socio } from '@/lib/api/socios';
 import { actividadesService, type Actividad } from '@/lib/api/actividades';
@@ -54,6 +55,7 @@ const membresiaSchema = z.object({
 type MembresiaFormData = z.infer<typeof membresiaSchema>;
 
 export default function NuevaMembresiaPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export default function NuevaMembresiaPage() {
   const [isLoadingSocios, setIsLoadingSocios] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [metodoPagoNombre, setMetodoPagoNombre] = useState<string>('');
+  const [tipoCobro, setTipoCobro] = useState<'unico' | 'cuotas'>('unico');
 
   const currentDate = new Date();
   const [fechaInicio, setFechaInicio] = useState(currentDate.toISOString().split('T')[0]);
@@ -172,12 +175,25 @@ export default function NuevaMembresiaPage() {
     if (!inicio || !fin) return 1;
     const d1 = new Date(inicio + 'T00:00:00');
     const d2 = new Date(fin + 'T00:00:00');
-    const meses = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    const diffAnios = d2.getFullYear() - d1.getFullYear();
+    const diffMeses = d2.getMonth() - d1.getMonth();
+    const extraMes = d2.getDate() >= d1.getDate() ? 1 : 0;
+    const meses = diffAnios * 12 + diffMeses + extraMes;
     return meses > 0 ? meses : 1;
   };
 
   const [montoAPagar, setMontoAPagar] = useState<string>('');
   const [montoModificado, setMontoModificado] = useState(false);
+
+  const handleSeleccionarModalidad = (modalidad: 'unico' | 'cuotas') => {
+    setTipoCobro(modalidad);
+    if (modalidad === 'unico') {
+      setMontoAPagar(montoTotal.toFixed(2));
+    } else {
+      setMontoAPagar(precioPorActividades.toFixed(2));
+    }
+    setMontoModificado(false);
+  };
 
   const cantidadMeses = calcularMeses(fechaInicio, fechaFin);
   const precioPorActividades = selectedActividades.reduce((total, id) => {
@@ -188,17 +204,21 @@ export default function NuevaMembresiaPage() {
 
   useEffect(() => {
     setMontoModificado(false);
-  }, [selectedActividades, fechaInicio, fechaFin]);
+  }, [selectedActividades, fechaInicio, fechaFin, tipoCobro]);
 
   useEffect(() => {
     if (!montoModificado) {
       if (montoTotal > 0) {
-        setMontoAPagar(montoTotal.toFixed(2));
+        if (tipoCobro === 'unico') {
+          setMontoAPagar(montoTotal.toFixed(2));
+        } else {
+          setMontoAPagar(precioPorActividades.toFixed(2));
+        }
       } else {
         setMontoAPagar('');
       }
     }
-  }, [montoTotal, montoModificado]);
+  }, [montoTotal, precioPorActividades, tipoCobro, montoModificado]);
 
   const onSubmit = async (data: MembresiaFormData) => {
     setIsSubmitting(true);
@@ -239,22 +259,12 @@ export default function NuevaMembresiaPage() {
         idUsuarioProcesa: usuario.id,
       };
 
-      await membresiasService.crear(membresiaData);
-      setSuccess('¡Membresía creada exitosamente!');
+      const nuevaMembresia = await membresiasService.crear(membresiaData);
+      setSuccess('¡Membresía creada exitosamente! Redirigiendo...');
 
-      // Resetear formulario para permitir crear otra membresía
-      setSocioSeleccionado(null);
-      setValue('idSocio', 0);
-      setSearchSocio('');
-      setSocios([]);
-      setSelectedActividades([]);
-      setValue('actividadesIds', []);
-      setFechaInicio(new Date().toISOString().split('T')[0]);
-      setFechaFin('');
-      setValue('fechaInicio', new Date().toISOString().split('T')[0]);
-      setValue('fechaFin', '');
-      setMontoAPagar('');
-      setMontoModificado(false);
+      setTimeout(() => {
+        router.push(`/dashboard/membresias/${nuevaMembresia.id}`);
+      }, 1500);
     } catch (err: any) {
       let errorMessage = 'Error al crear la membresía';
       if (err.response?.data) {
@@ -563,11 +573,88 @@ export default function NuevaMembresiaPage() {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Modalidad de Facturación / Cobro Selector */}
+              {selectedActividades.length > 0 && fechaFin && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Modalidad de Facturación / Cobro</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Opción Pago Único */}
+                    <div
+                      onClick={() => handleSeleccionarModalidad('unico')}
+                      className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
+                        tipoCobro === 'unico'
+                          ? 'border-green-600 bg-green-50/50 shadow-sm'
+                          : 'border-gray-200 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <input
+                          type="radio"
+                          checked={tipoCobro === 'unico'}
+                          onChange={() => {}}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500"
+                        />
+                        <span className="font-bold text-sm text-gray-900">Pago Único (Total)</span>
+                      </div>
+                      <p className="text-xs text-gray-600 ml-6">
+                        Se abona el importe completo de la membresía.
+                      </p>
+                      <p className="text-sm font-extrabold text-green-700 mt-2 ml-6">
+                        ${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+
+                    {/* Opción Pago en Cuotas */}
+                    <div
+                      onClick={() => handleSeleccionarModalidad('cuotas')}
+                      className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
+                        tipoCobro === 'cuotas'
+                          ? 'border-green-600 bg-green-50/50 shadow-sm'
+                          : 'border-gray-200 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <input
+                          type="radio"
+                          checked={tipoCobro === 'cuotas'}
+                          onChange={() => {}}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500"
+                        />
+                        <span className="font-bold text-sm text-gray-900">Plan en Cuotas</span>
+                      </div>
+                      <p className="text-xs text-gray-600 ml-6">
+                        Se financia en cuotas mensuales.
+                      </p>
+                      <p className="text-sm font-extrabold text-green-700 mt-2 ml-6">
+                        {cantidadMeses} cuota{cantidadMeses > 1 ? 's' : ''} de ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} / mes
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detalle explicativo de cálculo */}
+                  <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500 flex flex-col gap-1.5">
+                    <p className="font-medium text-gray-700">Cálculo de cuotas de la membresía:</p>
+                    <div className="flex justify-between items-center bg-white border border-gray-100 p-2 rounded">
+                      <span>Costo total mensual ({selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'}):</span>
+                      <strong className="text-gray-900">${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} / mes</strong>
+                    </div>
+                    <div className="flex justify-between items-center bg-white border border-gray-100 p-2 rounded">
+                      <span>Período total de membresía:</span>
+                      <strong className="text-gray-900">× {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'}</strong>
+                    </div>
+                    <div className="flex justify-between items-center bg-green-50/50 border border-green-100 p-2 rounded text-sm text-green-800 font-semibold">
+                      <span>Total acumulado:</span>
+                      <span className="text-lg font-extrabold">${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Monto a pagar (editable) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <DollarSign className="w-4 h-4 inline mr-2" />
-                  Monto a Pagar
+                  Monto del Pago Inicial
                 </label>
                 <input
                   type="number"
@@ -580,14 +667,15 @@ export default function NuevaMembresiaPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-bold text-green-700 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200"
                 />
                 {selectedActividades.length > 0 && fechaFin && (
-                  <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                  <div className="mt-2 text-xs text-gray-500">
                     <p>
-                      Total: ${precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })} /mes
-                      × {cantidadMeses} {cantidadMeses === 1 ? 'mes' : 'meses'}
-                      = <strong className="text-gray-700">${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
-                    </p>
-                    <p>
-                      {selectedActividades.length} {selectedActividades.length === 1 ? 'actividad' : 'actividades'} seleccionadas
+                      Monto inicial sugerido para modalidad <strong>{tipoCobro === 'unico' ? 'Pago Único' : 'Plan en Cuotas'}</strong>:{' '}
+                      <strong className="text-gray-700">
+                        ${tipoCobro === 'unico'
+                          ? montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })
+                          : precioPorActividades.toLocaleString('es-AR', { minimumFractionDigits: 2 })
+                        }
+                      </strong>
                     </p>
                   </div>
                 )}
