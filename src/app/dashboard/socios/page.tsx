@@ -71,6 +71,26 @@ export default function SociosPage() {
     cargarSocios();
   };
 
+  const handleCambiarEstado = async (id: number, estaActivo: boolean) => {
+    const accion = estaActivo ? 'activar' : 'desactivar';
+    if (!confirm(`¿Está seguro de que desea ${accion} este socio?`)) {
+      return;
+    }
+    try {
+      await sociosService.cambiarEstado(id, estaActivo);
+      // Actualizar el estado local
+      setSocios((prevSocios) =>
+        prevSocios.map((socio) =>
+          socio.id === id ? { ...socio, estaActivo } : socio
+        )
+      );
+      setOpenMenuId(null);
+    } catch (error: any) {
+      console.error(`Error al ${accion} socio:`, error);
+      alert(error.response?.data?.message || `Error al ${accion} el socio`);
+    }
+  };
+
   const filteredSocios = socios.filter((socio) => {
     if (filterStatus === 'activos') return socio.estaActivo;
     if (filterStatus === 'inactivos') return !socio.estaActivo;
@@ -282,14 +302,27 @@ export default function SociosPage() {
                                 <Eye className="w-4 h-4" />
                                 Ver Detalle
                               </button>
-                              {/* Solo admin y superadmin pueden desactivar */}
+                              {/* Solo admin y superadmin pueden activar/desactivar */}
                               {userRole && ['admin', 'superadmin'].includes(userRole) && (
                                 <button
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                  onClick={() => setOpenMenuId(null)}
+                                  className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
+                                    socio.estaActivo
+                                      ? 'text-red-600 hover:bg-red-50'
+                                      : 'text-green-600 hover:bg-green-50'
+                                  }`}
+                                  onClick={() => handleCambiarEstado(socio.id, !socio.estaActivo)}
                                 >
-                                  <UserX className="w-4 h-4" />
-                                  Desactivar
+                                  {socio.estaActivo ? (
+                                    <>
+                                      <UserX className="w-4 h-4" />
+                                      Desactivar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="w-4 h-4" />
+                                      Activar
+                                    </>
+                                  )}
                                 </button>
                               )}
                             </div>

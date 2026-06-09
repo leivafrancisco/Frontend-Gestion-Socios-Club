@@ -177,7 +177,7 @@ export default function NuevaMembresiaPage() {
     const d2 = new Date(fin + 'T00:00:00');
     const diffAnios = d2.getFullYear() - d1.getFullYear();
     const diffMeses = d2.getMonth() - d1.getMonth();
-    const extraMes = d2.getDate() >= d1.getDate() ? 1 : 0;
+    const extraMes = d2.getDate() > d1.getDate() ? 1 : 0;
     const meses = diffAnios * 12 + diffMeses + extraMes;
     return meses > 0 ? meses : 1;
   };
