@@ -690,26 +690,6 @@ export default function NuevoPagoPage() {
                       </p>
                     )}
 
-                    {/* Botones de monto rápido */}
-                    {!cuotaSeleccionada && (
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setValue('monto', membresiaSeleccionada.saldo)}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
-                        >
-                          Pago Total (${membresiaSeleccionada.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setValue('monto', membresiaSeleccionada.saldo / 2)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                        >
-                          Mitad (${(membresiaSeleccionada.saldo / 2).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                        </button>
-                      </div>
-                    )}
-
                     {montoIngresado > 0 && montoIngresado <= (cuotaSeleccionada ? cuotaSeleccionada.monto : membresiaSeleccionada.saldo) && (
                       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-800">
