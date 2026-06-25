@@ -104,7 +104,8 @@ export default function NuevoPagoPage() {
   };
 
   const buscarSocios = async () => {
-    if (searchSocio.trim().length < 2) {
+    const term = searchSocio.trim();
+    if (term.length < 2) {
       setError('Ingrese al menos 2 caracteres para buscar');
       return;
     }
@@ -112,10 +113,32 @@ export default function NuevoPagoPage() {
     try {
       setIsLoadingSocios(true);
       setError('');
-      const data = await sociosService.obtenerTodos({ search: searchSocio, estaActivo: true });
-      setSocios(data);
 
-      if (data.length === 0) {
+      // Separamos en palabras para realizar la búsqueda y el filtro
+      const palabras = term.split(/\s+/).filter(Boolean);
+      const primerPalabra = palabras[0];
+
+      // Buscamos en el backend usando la primera palabra como filtro inicial
+      const data = await sociosService.obtenerTodos({ search: primerPalabra, estaActivo: true });
+
+      // Filtramos localmente para asegurar que coincidan todas las palabras ingresadas
+      const filteredData = data.filter((socio) => {
+        const fullName = `${socio.nombre} ${socio.apellido}`.toLowerCase();
+        const reversedFullName = `${socio.apellido} ${socio.nombre}`.toLowerCase();
+        return palabras.every((palabra) => {
+          const pLower = palabra.toLowerCase();
+          return (
+            fullName.includes(pLower) ||
+            reversedFullName.includes(pLower) ||
+            socio.numeroSocio.toLowerCase().includes(pLower) ||
+            (socio.dni && socio.dni.includes(palabra))
+          );
+        });
+      });
+
+      setSocios(filteredData);
+
+      if (filteredData.length === 0) {
         setError('No se encontraron socios con ese criterio de búsqueda');
       }
     } catch (error) {
