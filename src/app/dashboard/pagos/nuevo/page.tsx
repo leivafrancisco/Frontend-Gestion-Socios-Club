@@ -9,7 +9,6 @@ import { pagosService, type MetodoPago } from '@/lib/api/pagos';
 import { sociosService, type Socio } from '@/lib/api/socios';
 import { membresiasService, type Membresia } from '@/lib/api/membresias';
 import { cuotasService, type CuotaDto } from '@/lib/api/cuotas';
-import { getPagoStrategy } from '@/lib/pagos/PagoStrategyFactory';
 import {
   ArrowLeft,
   DollarSign,
@@ -64,7 +63,6 @@ export default function NuevoPagoPage() {
   const [membresiaSeleccionada, setMembresiaSeleccionada] = useState<Membresia | null>(null);
   const [searchSocio, setSearchSocio] = useState('');
   const [isLoadingSocios, setIsLoadingSocios] = useState(false);
-  const [metodoPagoNombre, setMetodoPagoNombre] = useState('');
 
   const [cuotas, setCuotas] = useState<CuotaDto[]>([]);
   const [cuotaSeleccionada, setCuotaSeleccionada] = useState<CuotaDto | null>(null);
@@ -641,10 +639,6 @@ export default function NuevoPagoPage() {
                     <select
                       {...register('idMetodoPago', {
                         valueAsNumber: true,
-                        onChange: (e) => {
-                          const seleccionado = metodosPago.find(m => m.id === Number(e.target.value));
-                          setMetodoPagoNombre(seleccionado?.nombre ?? '');
-                        },
                       })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -660,11 +654,6 @@ export default function NuevoPagoPage() {
                         <AlertCircle className="w-3 h-3" />
                         {errors.idMetodoPago.message}
                       </p>
-                    )}
-                    {metodoPagoNombre && (
-                      <div className="mt-3">
-                        {getPagoStrategy(metodoPagoNombre).renderUI(montoIngresado || 0)}
-                      </div>
                     )}
                   </div>
 
