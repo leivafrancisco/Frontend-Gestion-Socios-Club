@@ -19,6 +19,7 @@ export interface CrearSocioDto {
   email: string;
   dni?: string;
   fechaNacimiento?: string;
+  idUsuarioProcesa?: number;
 }
 
 export interface ActualizarSocioDto {

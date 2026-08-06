@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { sociosService, CrearSocioDto } from '@/lib/api/socios';
+import { authService } from '@/lib/api/auth';
 
 const socioSchema = z.object({
   nombre: z.preprocess(
@@ -80,6 +81,7 @@ export default function NuevoSocioPage() {
     setSuccess(null);
 
     try {
+      const usuario = authService.getUsuario();
       // Zod ya aplicó transform (trim) a todos los campos
       const socioData: CrearSocioDto = {
         nombre: data.nombre,
@@ -87,6 +89,7 @@ export default function NuevoSocioPage() {
         email: data.email,
         dni: data.dni && data.dni !== '' ? data.dni : undefined,
         fechaNacimiento: data.fechaNacimiento || undefined,
+        idUsuarioProcesa: usuario?.id,
       };
 
       console.log('Datos a enviar:', socioData);
