@@ -24,6 +24,7 @@ import {
   Settings,
   Database,
   AlertCircle,
+  BarChart2,
 } from 'lucide-react';
 import { authService } from '@/lib/api/auth';
 
@@ -54,6 +55,12 @@ const menuItems: MenuItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
     href: '/dashboard',
+  },
+  {
+    label: 'Estadísticas',
+    icon: <BarChart2 className="w-5 h-5" />,
+    href: '/dashboard/estadisticas',
+    roles: ['superadmin', 'admin'],
   },
   {
     label: 'Socios',
@@ -170,23 +177,23 @@ const menuItems: MenuItem[] = [
     href: '/dashboard/usuarios',
     roles: ['superadmin'],
   },
-  {
-    label: 'Configuración',
-    icon: <Settings className="w-5 h-5" />,
-    roles: ['superadmin'],
-    children: [
-      {
-        label: 'Backup',
-        href: '/dashboard/configuracion/backup',
-        icon: <Database className="w-4 h-4" />,
-      },
-      {
-        label: 'Auditoría',
-        href: '/dashboard/configuracion/auditoria',
-        icon: <ClipboardList className="w-4 h-4" />,
-      },
-    ],
-  },
+  // {
+  //   label: 'Configuración',
+  //   icon: <Settings className="w-5 h-5" />,
+  //   roles: ['superadmin'],
+  //   children: [
+  //     {
+  //       label: 'Backup',
+  //       href: '/dashboard/configuracion/backup',
+  //       icon: <Database className="w-4 h-4" />,
+  //     },
+  //     {
+  //       label: 'Auditoría',
+  //       href: '/dashboard/configuracion/auditoria',
+  //       icon: <ClipboardList className="w-4 h-4" />,
+  //     },
+  //   ],
+  // },
 ];
 
 interface SidebarProps {

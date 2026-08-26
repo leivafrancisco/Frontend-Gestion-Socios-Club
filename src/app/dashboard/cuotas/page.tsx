@@ -48,23 +48,21 @@ export default function ResumenCuotasPage() {
     try {
       setLoadingCuotas(true);
       const activeTerm = termOverride !== undefined ? termOverride : searchTerm;
-      const queryActive = activeTerm.trim().length > 0;
 
       const filtros: any = {
-        page: queryActive ? 1 : page,
-        pageSize: queryActive ? 1000 : pageSize,
+        page: page,
+        pageSize: pageSize,
       };
+      if (activeTerm.trim()) {
+        filtros.search = activeTerm.trim();
+      }
       if (estadoFiltro !== 'todas') {
         filtros.estado = estadoFiltro;
       }
       
       const data = await cuotasService.obtenerTodas(filtros);
       setCuotas(data);
-      if (queryActive) {
-        setHasMore(false);
-      } else {
-        setHasMore(data.length === pageSize);
-      }
+      setHasMore(data.length === pageSize);
     } catch (error) {
       console.error('Error al cargar listado de cuotas:', error);
     } finally {
@@ -129,14 +127,7 @@ export default function ResumenCuotasPage() {
     }
   };
 
-  const cuotasFiltradas = cuotas.filter((cuota) => {
-    if (!searchTerm.trim()) return true;
-    const query = searchTerm.toLowerCase().trim();
-    return (
-      cuota.nombreSocio.toLowerCase().includes(query) ||
-      cuota.numeroSocio.toLowerCase().includes(query)
-    );
-  });
+  // cuotasFiltradas se elimina, se utiliza cuotas directamente
 
   return (
     <div className="space-y-6">
@@ -355,7 +346,7 @@ export default function ResumenCuotasPage() {
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               <span className="ml-3 text-sm text-gray-500">Cargando planilla de cuotas...</span>
             </div>
-          ) : cuotasFiltradas.length === 0 ? (
+          ) : cuotas.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
               No se encontraron cuotas para el criterio de búsqueda o filtro.
             </div>
@@ -372,8 +363,8 @@ export default function ResumenCuotasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {cuotasFiltradas.map((cuota) => (
-                  <tr key={cuota.id} className="hover:bg-gray-50/50 transition-colors">
+                {cuotas.map((cuota) => (
+                  <tr key={cuota.id} className="hover:bg-gray-200 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-gray-900">{cuota.nombreSocio}</div>
                       <div className="text-xs text-gray-500">N° Socio: #{cuota.numeroSocio}</div>
@@ -381,6 +372,11 @@ export default function ResumenCuotasPage() {
                     <td className="px-6 py-4">
                       <div className="text-gray-900 font-medium">Membresía #{cuota.idMembresia}</div>
                       <div className="text-xs text-gray-500">Cuota {cuota.numeroCuota} ({cuota.periodoMembresia})</div>
+                      {cuota.actividades && cuota.actividades.length > 0 && (
+                        <div className="text-xs text-gray-700 mt-1.5 font-semibold bg-gray-100 rounded-md px-2 py-1 inline-block border border-gray-200 shadow-sm">
+                          {cuota.actividades.join(', ')}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-gray-900">
                       ${cuota.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
@@ -427,7 +423,7 @@ export default function ResumenCuotasPage() {
         </div>
 
         {/* Paginación */}
-        {!loadingCuotas && cuotasFiltradas.length > 0 && (
+        {!loadingCuotas && cuotas.length > 0 && (
           <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
             <div>Página {page}</div>
             <div className="flex gap-2">

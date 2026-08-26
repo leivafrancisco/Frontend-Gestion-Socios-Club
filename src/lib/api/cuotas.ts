@@ -16,6 +16,7 @@ export interface CuotaDto {
   esMorosa: boolean;
   diasVencida: number;
   fechaCreacion: string; // ISO DateTime
+  actividades: string[];
 }
 
 export interface MorosoDto {
@@ -46,6 +47,7 @@ export interface FiltrosCuotasDto {
   soloVencidas?: boolean;
   fechaVencimientoDesde?: string;
   fechaVencimientoHasta?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
@@ -63,6 +65,7 @@ export const cuotasService = {
       if (filtros.soloVencidas !== undefined) params.append('soloVencidas', filtros.soloVencidas.toString());
       if (filtros.fechaVencimientoDesde) params.append('fechaVencimientoDesde', filtros.fechaVencimientoDesde);
       if (filtros.fechaVencimientoHasta) params.append('fechaVencimientoHasta', filtros.fechaVencimientoHasta);
+      if (filtros.search) params.append('search', filtros.search);
       if (filtros.page !== undefined) params.append('page', filtros.page.toString());
       if (filtros.pageSize !== undefined) params.append('pageSize', filtros.pageSize.toString());
     }

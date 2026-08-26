@@ -99,10 +99,23 @@ export default function EditarMembresiaPage() {
     setError('');
   };
 
+  const calcularMeses = (inicio: string, fin: string): number => {
+    if (!inicio || !fin) return 1;
+    const d1 = new Date(inicio + 'T00:00:00');
+    const d2 = new Date(fin + 'T00:00:00');
+    const diffAnios = d2.getFullYear() - d1.getFullYear();
+    const diffMeses = d2.getMonth() - d1.getMonth();
+    const extraMes = d2.getDate() > d1.getDate() ? 1 : 0;
+    const meses = diffAnios * 12 + diffMeses + extraMes;
+    return meses > 0 ? meses : 1;
+  };
+
   const calcularNuevoTotal = (): number => {
-    return actividades
+    const meses = calcularMeses(watch('fechaInicio'), watch('fechaFin'));
+    const sumaMensual = actividades
       .filter(a => idsActividadesSeleccionadas.includes(a.id))
       .reduce((sum, a) => sum + a.precio, 0);
+    return sumaMensual * meses;
   };
 
   const onSubmit = async (data: ActualizarMembresiaFormData) => {

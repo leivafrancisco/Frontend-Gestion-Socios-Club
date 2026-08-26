@@ -152,9 +152,9 @@ export default function MembresiasPage() {
       setIsDeleting(true);
       await membresiasService.eliminar(id);
       await cargarMembresias();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar membresía:', error);
-      alert('Error al eliminar la membresía. Por favor, intenta nuevamente.');
+      alert(error.response?.data?.message || 'Error al eliminar la membresía. Por favor, intenta nuevamente.');
     } finally {
       setIsDeleting(false);
     }

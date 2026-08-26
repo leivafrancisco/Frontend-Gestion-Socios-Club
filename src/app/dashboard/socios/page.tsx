@@ -295,13 +295,14 @@ export default function SociosPage() {
                                   Editar
                                 </Link>
                               )}
-                              <button
+                              <Link
+                                href={`/dashboard/socios/${socio.id}`}
                                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                 onClick={() => setOpenMenuId(null)}
                               >
                                 <Eye className="w-4 h-4" />
                                 Ver Detalle
-                              </button>
+                              </Link>
                               {/* Solo admin y superadmin pueden activar/desactivar */}
                               {userRole && ['admin', 'superadmin'].includes(userRole) && (
                                 <button

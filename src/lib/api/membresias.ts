@@ -113,6 +113,11 @@ export const membresiasService = {
   async eliminar(id: number): Promise<void> {
     await apiClient.delete(`/membresias/${id}`);
   },
+
+  async obtenerTotal(): Promise<number> {
+    const response = await apiClient.get<{ total: number }>('/membresias/estadisticas/total');
+    return response.data.total;
+  },
 };
 
 export default membresiasService;
